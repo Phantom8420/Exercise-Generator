@@ -1,31 +1,51 @@
 {
   "expo": {
-    "name": "plasma",
+    "name": "Plasma",
     "slug": "plasma",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "bundleIdentifier": "com.phantom8420.plasma"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#000000",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.phantom8420.plasma"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "output": "single"
     },
     "plugins": [
       "expo-router",
       "expo-sqlite",
       "expo-image",
-      "expo-font"
-    ]
+      "expo-font",
+      "expo-sharing",
+      [
+        "expo-notifications",
+        {
+          "color": "#F2620F"
+        }
+      ]
+    ],
+    "scheme": "plasma",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
+    "experiments": {
+      "typedRoutes": false
+    }
   }
 }

@@ -169,13 +169,17 @@ export async function upsertDay(db: Db, routineId: number, weekday: number, patc
       ])
     ).lastInsertRowId;
   }
+  await updateDay(db, existing.id, patch);
+  return existing.id;
+}
+
+export async function updateDay(db: Db, dayId: number, patch: { label?: string; intensity?: Intensity; minutes?: number }): Promise<void> {
   const sets: string[] = [];
   const params: (string | number)[] = [];
   if (patch.label != null) { sets.push('label = ?'); params.push(patch.label); }
   if (patch.intensity != null) { sets.push('intensity = ?'); params.push(patch.intensity); }
   if (patch.minutes != null) { sets.push('session_minutes = ?'); params.push(patch.minutes); }
-  if (sets.length) await db.run(`UPDATE routine_day SET ${sets.join(', ')} WHERE id = ?`, [...params, existing.id]);
-  return existing.id;
+  if (sets.length) await db.run(`UPDATE routine_day SET ${sets.join(', ')} WHERE id = ?`, [...params, dayId]);
 }
 
 export async function deleteDay(db: Db, dayId: number): Promise<void> {

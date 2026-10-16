@@ -3,6 +3,7 @@ import foods from '../../data/foods.json';
 import { addDays, today, weekdayOf } from '../../domain/dates';
 import { generateRoutine } from '../../domain/generator';
 import { parseMenu } from '../../domain/menu';
+import { exportData } from '../exportData';
 import { migrate, MIGRATIONS } from '../migrations';
 import { createChallenge, getChallenge } from '../repo/challenges';
 import { getSetting, setSetting } from '../repo/core';
@@ -125,4 +126,12 @@ describe('debt, challenges and nutrition end to end', () => {
     expect(t.protein).toBeGreaterThan(60);
     expect(t.kcal).toBeGreaterThan(600);
   });
+});
+
+it('export skips bundled datasets and is valid JSON', async () => {
+  const out = await exportData(db);
+  expect(out.tables.exercise).toBeUndefined();
+  expect(out.tables.food).toEqual([]);
+  expect(out.tables.user).toHaveLength(1);
+  expect(JSON.parse(JSON.stringify(out)).app).toBe('plasma');
 });
