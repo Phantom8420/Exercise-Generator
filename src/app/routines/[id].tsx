@@ -22,7 +22,7 @@ import { GOAL_LABEL, SPLIT_LABEL, WEEKDAYS, type Goal } from '../../domain/types
 import { displayWeight, storeWeight } from '../../domain/units';
 import { pickExercise } from '../../state/pick';
 import { useUnits } from '../../ui/format';
-import { Button, Card, Divider, Field, Gate, IconButton, ListRow, Row, Screen, Segmented, Stepper, Tag, Txt } from '../../ui/kit';
+import { Button, Card, Divider, Field, Gate, Icon, IconButton, ListRow, Row, Screen, Segmented, Stepper, Tag, Txt } from '../../ui/kit';
 import { space } from '../../ui/theme';
 import { useData, useWrite } from '../../ui/useData';
 
@@ -110,7 +110,7 @@ function DayCard({ day, goal }: { day: RoutineDay; goal: Goal }) {
             subtitle={`${e.sets} × ${e.repMin}–${e.repMax} · rest ${e.restS}s`}
             chevron={false}
             onPress={() => setOpen(open === e.id ? null : e.id)}
-            right={<IconButton icon={open === e.id ? 'chevron-up' : 'chevron-down'} label={`Edit ${e.exercise.name}`} tone="plain" onPress={() => setOpen(open === e.id ? null : e.id)} />}
+            right={<Icon name={open === e.id ? 'chevron-up' : 'chevron-down'} color="muted" />}
           />
           {open === e.id && <ExerciseEditor e={e} first={i === 0} last={i === day.exercises.length - 1} />}
         </View>

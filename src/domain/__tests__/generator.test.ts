@@ -1,5 +1,6 @@
 import { estimatedMinutes, generateRoutine } from '../generator';
 import { equivalenceFactor, findSubstitutes } from '../substitutes';
+import { rankFor } from '../training';
 import { ex, library } from './fixtures';
 
 const lib = library();
@@ -72,4 +73,13 @@ describe('substitutes', () => {
     expect(equivalenceFactor(a, a)).toBe(1);
     expect(equivalenceFactor(a, b)).toBe(1.5);
   });
+});
+
+it('ranks staple lifts above obscure variations', () => {
+  const pool = [
+    ex({ id: 'Barbell_Guillotine_Bench_Press', name: 'Barbell Guillotine Bench Press', primary: ['chest'] }),
+    ex({ id: 'Dumbbell_Flyes', name: 'Dumbbell Flyes', primary: ['chest'], mechanic: 'isolation' }),
+    ex({ id: 'Barbell_Bench_Press_-_Medium_Grip', name: 'Barbell Bench Press', primary: ['chest'] }),
+  ];
+  expect(rankFor('chest', pool, 'beginner').map((e) => e.id)).toEqual(['Barbell_Bench_Press_-_Medium_Grip', 'Dumbbell_Flyes', 'Barbell_Guillotine_Bench_Press']);
 });
