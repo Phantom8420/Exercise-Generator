@@ -10,7 +10,8 @@ import { today, weekdayOf } from '../domain/dates';
 import { displayWeight, storeWeight } from '../domain/units';
 import { pickExercise } from '../state/pick';
 import { useUnits } from '../ui/format';
-import { Button, Card, Divider, Field, Gate, IconButton, ListRow, ProgressBar, Row, Screen, Section, Txt } from '../ui/kit';
+import { PhotoHero } from '../media/ExerciseDemo';
+import { Button, Card, Divider, Field, Gate, IconButton, ListRow, ProgressBar, Row, Screen, Section, StatRow, Tag, Txt } from '../ui/kit';
 import { space } from '../ui/theme';
 import { useData, useWrite } from '../ui/useData';
 import { Wheel } from '../ui/Wheel';
@@ -99,6 +100,7 @@ export default function Workout() {
   return (
     <Screen
       back
+      glow
       title={state.data?.session ? `Workout · ${mmss((tick - Date.parse(state.data.session.startedAt)) / 1000)}` : 'Workout'}
       right={<Button small title="Finish" kind="secondary" onPress={finish} />}
     >
@@ -108,21 +110,27 @@ export default function Workout() {
           return (
             <>
               {selected.data ? (
-                <Card tone="invert" style={{ gap: space.m, padding: space.xl }}>
-                  <Txt v="title" color="onInvert" numberOfLines={2}>{selected.data.ex.name}</Txt>
-                  {selected.data.debt ? (
-                    <Txt v="label" color="onInvert" style={{ opacity: 0.8 }}>
-                      Repaying {selected.data.debt.exercise.name}
-                      {selected.data.factor !== 1 ? ` · each set counts ×${selected.data.factor.toFixed(2)}` : ''}
-                    </Txt>
-                  ) : planned ? (
-                    <Txt v="label" color="onInvert" style={{ opacity: 0.8 }}>
-                      Set {Math.min(doneFor(planned.exerciseId) + 1, planned.sets)} of {planned.sets} · {planned.repMin}–{planned.repMax} reps
-                    </Txt>
+                <PhotoHero exercise={selected.data.ex} height={300}>
+                  {selected.data.debt && (
+                    <Tag
+                      outline
+                      label={`Repaying ${selected.data.debt.exercise.name}${selected.data.factor !== 1 ? ` · ×${selected.data.factor.toFixed(2)}` : ''}`}
+                    />
+                  )}
+                  <Txt v="title" style={{ color: '#FFFFFF', fontSize: 30, lineHeight: 34 }} numberOfLines={2}>{selected.data.ex.name}</Txt>
+                  {planned && !selected.data.debt ? (
+                    <StatRow
+                      light
+                      items={[
+                        { icon: 'layers', value: `${Math.min(doneFor(planned.exerciseId) + 1, planned.sets)}/${planned.sets}`, label: 'set' },
+                        { icon: 'repeat', value: `${planned.repMin}–${planned.repMax}`, label: 'reps' },
+                        { icon: 'clock', value: `${planned.restS}s`, label: 'rest' },
+                      ]}
+                    />
                   ) : selected.data.last ? (
-                    <Txt v="label" color="onInvert" style={{ opacity: 0.8 }}>Last time {u.weight(selected.data.last.weightKg)} × {selected.data.last.reps}</Txt>
+                    <Txt v="label" style={{ color: 'rgba(255,255,255,0.75)' }}>Last time {u.weight(selected.data.last.weightKg)} × {selected.data.last.reps}</Txt>
                   ) : null}
-                </Card>
+                </PhotoHero>
               ) : null}
               {selected.data ? (
                 <Card style={{ gap: space.m }}>

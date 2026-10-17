@@ -1,6 +1,6 @@
 import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
-import type { ComponentProps, ReactNode } from 'react';
+import { useId, type ComponentProps, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -14,6 +14,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { font, radius, space, useTheme, type ColorName } from './theme';
 import type { Loadable } from './useData';
 
@@ -64,12 +65,15 @@ export function Screen({
   scroll = true,
   children,
   pad = true,
+  glow,
 }: {
   title?: string;
   back?: boolean;
   right?: ReactNode;
   scroll?: boolean;
   pad?: boolean;
+  /** Warm orange light bleeding down from the top edge. */
+  glow?: boolean;
   children: ReactNode;
 }) {
   const { c } = useTheme();
@@ -86,6 +90,7 @@ export function Screen({
   const body = { padding: pad ? space.l : 0, paddingTop: 0, gap: space.m, paddingBottom: 120 };
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: c.bg }}>
+      {glow && <Glow />}
       {header}
       {scroll ? (
         <ScrollView contentContainerStyle={body} keyboardShouldPersistTaps="handled">
@@ -95,6 +100,42 @@ export function Screen({
         <View style={[{ flex: 1 }, body, { paddingBottom: 0 }]}>{children}</View>
       )}
     </SafeAreaView>
+  );
+}
+
+/** Svg gradient ids are document-global on web, so each instance needs its own. */
+export const useSvgId = () => 'g' + useId().replace(/[^a-zA-Z0-9]/g, '');
+
+export function Glow({ height = 420 }: { height?: number }) {
+  const { c, dark } = useTheme();
+  const id = useSvgId();
+  return (
+    <Svg pointerEvents="none" width="100%" height={height} style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
+      <Defs>
+        <RadialGradient id={id} cx="50%" cy="0%" rx="90%" ry="100%" fx="50%" fy="0%">
+          <Stop offset="0" stopColor={c.accent} stopOpacity={dark ? 0.55 : 0.28} />
+          <Stop offset="0.45" stopColor={c.accent} stopOpacity={dark ? 0.16 : 0.08} />
+          <Stop offset="1" stopColor={c.accent} stopOpacity={0} />
+        </RadialGradient>
+      </Defs>
+      <Rect width="100%" height="100%" fill={`url(#${id})`} />
+    </Svg>
+  );
+}
+
+/** Icon over value over label, e.g. "10-20 / min". `light` forces white for use over photos. */
+export function StatRow({ items, light }: { items: { icon: IconName; value: string; label: string }[]; light?: boolean }) {
+  const white = light ? { color: '#FFFFFF' } : undefined;
+  return (
+    <Row gap={space.xl} style={{ alignItems: 'flex-start' }}>
+      {items.map((it) => (
+        <View key={it.label} style={{ gap: 4 }} accessible accessibilityLabel={`${it.value} ${it.label}`}>
+          <Icon name={it.icon} size={20} color="accent" />
+          <Txt v="heading" num style={white}>{it.value}</Txt>
+          <Txt v="caption" color="muted" style={light && { color: 'rgba(255,255,255,0.7)' }}>{it.label}</Txt>
+        </View>
+      ))}
+    </Row>
   );
 }
 
@@ -430,11 +471,22 @@ export function Formula({ text }: { text: string }) {
 }
 
 /** Non-interactive pill label. */
-export function Tag({ label, strong }: { label: string; strong?: boolean }) {
+export function Tag({ label, strong, outline }: { label: string; strong?: boolean; outline?: boolean }) {
   const { c } = useTheme();
   return (
-    <View style={{ minHeight: 32, paddingHorizontal: 12, borderRadius: radius.pill, justifyContent: 'center', backgroundColor: strong ? c.accentTint : c.surface2 }}>
-      <Txt v="caption" color={strong ? 'accentText' : 'muted'} style={{ fontFamily: font.s }}>{label}</Txt>
+    <View
+      style={{
+        minHeight: outline ? 28 : 32,
+        paddingHorizontal: 12,
+        borderRadius: radius.pill,
+        justifyContent: 'center',
+        alignSelf: 'flex-start',
+        borderWidth: outline ? 1 : 0,
+        borderColor: c.accent,
+        backgroundColor: outline ? 'transparent' : strong ? c.accentTint : c.surface2,
+      }}
+    >
+      <Txt v="caption" color={strong || outline ? 'accentText' : 'muted'} style={{ fontFamily: font.s }}>{label}</Txt>
     </View>
   );
 }

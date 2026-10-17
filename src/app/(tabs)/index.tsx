@@ -7,63 +7,74 @@ import { listChallenges } from '../../db/repo/challenges';
 import { listDebts } from '../../db/repo/debts';
 import { activeDayFor, activeRoutine } from '../../db/repo/routines';
 import { activeSession, trainedDays, volumeByDay } from '../../db/repo/workouts';
+import { getExercise } from '../../db/repo/exercises';
+import { PhotoHero } from '../../media/ExerciseDemo';
 import { BarChart } from '../../ui/charts';
 import { fmtDate, useUnits } from '../../ui/format';
-import { BigNumber, Button, Card, Empty, Gate, IconButton, ProgressBar, Row, Screen, Section, Stat, Txt } from '../../ui/kit';
-import { space } from '../../ui/theme';
+import { Button, Card, Empty, Gate, IconButton, ProgressBar, Row, Screen, Section, Stat, StatRow, Tag, Txt } from '../../ui/kit';
 import { useData } from '../../ui/useData';
+
+const WHITE = { color: '#FFFFFF' };
+const GLOW = { shadowColor: '#F76B15', shadowOpacity: 0.55, shadowRadius: 18, shadowOffset: { width: 0, height: 6 }, elevation: 8 };
 
 export default function Home() {
   const u = useUnits();
   const now = today();
   const state = useData(async (db) => {
     const monday = addDays(now, -weekdayOf(now));
-    const [routine, day, session, debts, challenges, vol, trained] = await Promise.all([
+    const [routine, day, session, debts, challenges, vol, trained, fallback] = await Promise.all([
       activeRoutine(db), activeDayFor(db, weekdayOf(now)), activeSession(db), listDebts(db),
       listChallenges(db), volumeByDay(db, monday, addDays(monday, 6)), trainedDays(db, addDays(now, -365)),
+      getExercise(db, 'Barbell_Squat'),
     ]);
     const owed = debts.flatMap((d) => d.allocations.filter((a) => a.day === now).map((a) => ({ debt: d, amount: a.amount })));
     const week = WEEKDAYS.map((label, i) => ({ label: label.slice(0, 1), value: vol[addDays(monday, i)]?.volume ?? 0 }));
     return {
       routine, day, session, owed, week,
+      photo: day?.exercises[0]?.exercise ?? fallback,
       challenges: challenges.filter((c) => !c.progress.done).slice(0, 2),
       streak: currentStreak(trained, now, addDays(now, -365)),
     };
   });
 
   return (
-    <Screen title={fmtDate(now)} right={<IconButton icon="settings" label="Settings" onPress={() => router.push('/settings')} />}>
+    <Screen glow title={fmtDate(now)} right={<IconButton icon="settings" label="Settings" onPress={() => router.push('/settings')} />}>
       <Gate state={state}>
         {(d) => (
           <>
-            {!d.routine ? (
-              <Card>
-                <Empty
-                  icon="calendar"
-                  title="No routine yet"
-                  body="Pick a split, your days and session length. Plasma builds the week around your equipment."
-                  action={<Button title="Build my routine" icon="zap" onPress={() => router.push('/routines/generate')} />}
-                />
-              </Card>
-            ) : (
-              <Card tone="invert" style={{ padding: space.xl, gap: space.m }}>
-                <Txt v="label" color="onInvert" style={{ opacity: 0.7 }}>{d.routine.name}</Txt>
-                <Txt v="title" color="onInvert">{d.day ? d.day.label : 'Rest day'}</Txt>
-                {d.day ? (
-                  <Row gap={space.xl} style={{ alignItems: 'baseline' }}>
-                    <BigNumber value={String(d.day.exercises.reduce((s, e) => s + e.sets, 0))} unit="sets" color="onInvert" />
-                    <BigNumber value={String(estimatedMinutes(d.day.exercises))} unit="min" color="onInvert" size="title" />
-                  </Row>
-                ) : (
-                  <Txt color="onInvert" style={{ opacity: 0.75 }}>Nothing planned. Log anything you do and it still counts.</Txt>
-                )}
-                <Button
-                  title={d.session ? 'Resume workout' : d.day ? 'Start workout' : 'Log a workout'}
-                  icon={d.session ? 'play' : 'plus'}
-                  onPress={() => router.push('/workout')}
-                />
-              </Card>
-            )}
+            <PhotoHero exercise={d.photo}>
+              {!d.routine ? (
+                <>
+                  <Tag outline label="No routine yet" />
+                  <Txt v="title" style={[WHITE, { fontSize: 36, lineHeight: 40 }]}>Build your week.</Txt>
+                  <Txt style={{ color: 'rgba(255,255,255,0.75)' }}>Pick a split, your days and session length. Plasma fits it to your equipment.</Txt>
+                  <Button title="Build my routine" icon="zap" style={GLOW} onPress={() => router.push('/routines/generate')} />
+                </>
+              ) : (
+                <>
+                  <Tag outline label={d.routine.name} />
+                  <Txt v="title" style={[WHITE, { fontSize: 36, lineHeight: 40 }]} numberOfLines={2}>{d.day ? d.day.label : 'Rest day'}</Txt>
+                  {d.day ? (
+                    <StatRow
+                      light
+                      items={[
+                        { icon: 'clock', value: String(estimatedMinutes(d.day.exercises)), label: 'min' },
+                        { icon: 'layers', value: String(d.day.exercises.reduce((n, e) => n + e.sets, 0)), label: 'sets' },
+                        { icon: 'activity', value: String(d.day.exercises.length), label: 'exercises' },
+                      ]}
+                    />
+                  ) : (
+                    <Txt style={{ color: 'rgba(255,255,255,0.75)' }}>Nothing planned. Log anything you do and it still counts.</Txt>
+                  )}
+                  <Button
+                    title={d.session ? 'Resume workout' : d.day ? 'Start workout' : 'Log a workout'}
+                    icon={d.session ? 'play' : 'arrow-right'}
+                    style={GLOW}
+                    onPress={() => router.push('/workout')}
+                  />
+                </>
+              )}
+            </PhotoHero>
 
             {d.owed.length > 0 && (
               <Card onPress={() => router.push('/debt')} label="Open what you owe">

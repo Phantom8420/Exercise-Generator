@@ -14,7 +14,7 @@ interface AppState {
 
 export const useApp = create<AppState>((set) => ({
   units: 'metric',
-  theme: 'system',
+  theme: 'dark',
   version: 0,
   set: (p) => set(p),
   bump: () => set((s) => ({ version: s.version + 1 })),

@@ -5,9 +5,9 @@ import { activeEquipment } from '../../db/repo/core';
 import { allExercises, getExercise, updateMistakes } from '../../db/repo/exercises';
 import { recentSetsFor } from '../../db/repo/workouts';
 import { findSubstitutes } from '../../domain/substitutes';
-import { ExerciseDemo } from '../../media/ExerciseDemo';
+import { ExerciseDemo, PhotoHero } from '../../media/ExerciseDemo';
 import { cap, fmtDate, useUnits } from '../../ui/format';
-import { Button, Card, Chips, Empty, Field, Gate, IconButton, ListRow, Row, Screen, Section, Tag, Txt } from '../../ui/kit';
+import { Button, Card, Chips, Empty, Field, Gate, IconButton, ListRow, Row, Screen, Section, StatRow, Tag, Txt } from '../../ui/kit';
 import { space, useTheme } from '../../ui/theme';
 import { useData, useWrite } from '../../ui/useData';
 
@@ -25,33 +25,42 @@ export default function ExerciseDetail() {
   }, [id]);
 
   return (
-    <Screen back title={state.data?.ex.name ?? ''}>
+    <Screen back glow title="Exercise">
       <Gate state={state}>
         {({ ex, subs, recent }) => (
           <>
-            <ExerciseDemo exercise={ex} />
-            <Chips>
-              {ex.primary.map((m) => <Tag key={m} label={cap(m)} strong />)}
-              {ex.secondary.map((m) => <Tag key={m} label={cap(m)} />)}
-            </Chips>
-            <Card>
-              <Row>
-                {[['Equipment', ex.equipment], ['Level', ex.level], ['Type', ex.mechanic ?? '—'], ['Force', ex.force ?? '—']].map(([k, v]) => (
-                  <View key={k} style={{ flex: 1, gap: 2 }}>
-                    <Txt v="caption" color="muted">{k}</Txt>
-                    <Txt v="label">{cap(v)}</Txt>
-                  </View>
-                ))}
+            <PhotoHero exercise={ex} height={340}>
+              <Chips>
+                {ex.primary.map((m) => <Tag key={m} label={cap(m)} outline />)}
+              </Chips>
+              <Txt v="title" style={{ color: '#FFFFFF', fontSize: 32, lineHeight: 36 }} numberOfLines={3} accessibilityRole="header">{ex.name}</Txt>
+              <StatRow
+                light
+                items={[
+                  { icon: 'tool', value: cap(ex.equipment), label: 'equipment' },
+                  { icon: 'bar-chart-2', value: cap(ex.level), label: 'level' },
+                  { icon: 'git-merge', value: cap(ex.mechanic ?? 'Other'), label: 'type' },
+                ]}
+              />
+            </PhotoHero>
+            {ex.secondary.length > 0 && (
+              <Row style={{ flexWrap: 'wrap' }}>
+                <Txt v="caption" color="muted">Also works</Txt>
+                {ex.secondary.map((m) => <Tag key={m} label={cap(m)} />)}
               </Row>
-            </Card>
+            )}
+
+            <Section title="Demo">
+              <ExerciseDemo exercise={ex} />
+            </Section>
 
             <Section title="How to do it">
               <Card>
                 {ex.instructions.length === 0 && <Txt color="muted">No written instructions for this one.</Txt>}
                 {ex.instructions.map((step, i) => (
                   <Row key={i} gap={space.m} style={{ alignItems: 'flex-start' }}>
-                    <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: c.surface2, alignItems: 'center', justifyContent: 'center' }}>
-                      <Txt v="caption" num>{i + 1}</Txt>
+                    <View style={{ width: 26, height: 26, borderRadius: 13, borderWidth: 1, borderColor: c.accent, alignItems: 'center', justifyContent: 'center' }}>
+                      <Txt v="caption" color="accentText" num>{i + 1}</Txt>
                     </View>
                     <Txt style={{ flex: 1 }}>{step}</Txt>
                   </Row>
