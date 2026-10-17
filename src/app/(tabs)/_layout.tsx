@@ -24,13 +24,13 @@ function TabBar({ state, navigateToTab }: BottomTabBarProps) {
         onPress={() => !on && navigateToTab(route.key)}
         style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3, minHeight: 52 }}
       >
-        <Icon name={ICONS[route.name]} size={22} color={on ? 'ink' : 'muted'} />
-        <Txt v="caption" color={on ? 'ink' : 'muted'} style={{ fontSize: 11 }}>{LABELS[route.name]}</Txt>
+        <Icon name={ICONS[route.name]} size={22} color={on ? 'accent' : 'muted'} />
+        <Txt v="caption" color={on ? 'accentText' : 'muted'} style={{ fontSize: 11 }}>{LABELS[route.name]}</Txt>
       </Pressable>
     );
   };
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: c.surface, paddingBottom: Math.max(insets.bottom, 10), paddingTop: 8, paddingHorizontal: 8, borderTopWidth: 1, borderTopColor: c.line }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: c.bg, paddingBottom: Math.max(insets.bottom, 10), paddingTop: 8, paddingHorizontal: 8, borderTopWidth: 1, borderTopColor: c.line }}>
       {tab(0)}
       {tab(1)}
       <View style={{ flex: 1, alignItems: 'center' }}>

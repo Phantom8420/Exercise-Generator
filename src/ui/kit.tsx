@@ -21,9 +21,9 @@ export type IconName = ComponentProps<typeof Feather>['name'];
 
 // ---------- text ----------
 const VARIANTS = {
-  display: { fontFamily: font.x, fontSize: 64, lineHeight: 68, letterSpacing: -2 },
-  title: { fontFamily: font.x, fontSize: 30, lineHeight: 36, letterSpacing: -0.8 },
-  heading: { fontFamily: font.b, fontSize: 19, lineHeight: 24, letterSpacing: -0.3 },
+  display: { fontFamily: font.b, fontSize: 60, lineHeight: 66, letterSpacing: -2 },
+  title: { fontFamily: font.b, fontSize: 30, lineHeight: 36, letterSpacing: -0.8 },
+  heading: { fontFamily: font.b, fontSize: 18, lineHeight: 24, letterSpacing: -0.3 },
   body: { fontFamily: font.m, fontSize: 16, lineHeight: 23 },
   label: { fontFamily: font.s, fontSize: 14, lineHeight: 19 },
   caption: { fontFamily: font.m, fontSize: 13, lineHeight: 18 },
@@ -75,12 +75,12 @@ export function Screen({
   const { c } = useTheme();
   const header =
     title || back || right ? (
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.m, paddingHorizontal: space.l, paddingTop: space.s, paddingBottom: space.m }}>
-        {back && <IconButton icon="arrow-left" label="Back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />}
-        <Txt v={back ? 'heading' : 'title'} style={{ flex: 1 }} numberOfLines={1} accessibilityRole="header">
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.m, paddingHorizontal: space.l, paddingTop: space.s, paddingBottom: space.m, minHeight: 60 }}>
+        {back && <IconButton icon="chevron-left" tone="plain" label="Back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />}
+        <Txt v={back ? 'heading' : 'title'} style={{ flex: 1, textAlign: back ? 'center' : 'left', fontFamily: back ? font.s : undefined }} numberOfLines={1} accessibilityRole="header">
           {title ?? ''}
         </Txt>
-        {right}
+        {right ?? (back ? <View style={{ width: 44 }} /> : null)}
       </View>
     ) : null;
   const body = { padding: pad ? space.l : 0, paddingTop: 0, gap: space.m, paddingBottom: 120 };
@@ -107,10 +107,11 @@ export function Card({ children, onPress, style, label, tone = 'surface' }: {
 }) {
   const { c } = useTheme();
   const bg = tone === 'invert' ? c.invert : tone === 'accent' ? c.accent : c.surface;
-  const base: ViewStyle = { backgroundColor: bg, borderRadius: radius.card, padding: space.l, gap: space.s };
-  if (!onPress) return <View style={[base, style]}>{children}</View>;
+  const base: ViewStyle = { backgroundColor: bg, borderRadius: radius.card, padding: space.l, gap: space.s, borderWidth: tone === 'surface' ? 1 : 0, borderColor: c.line };
+  const hero: ViewStyle | false = tone === 'invert' && { paddingHorizontal: 0, paddingTop: space.s };
+  if (!onPress) return <View style={[base, style, hero]}>{children}</View>;
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={({ pressed }) => [base, pressed && { opacity: 0.85 }, style]}>
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={({ pressed }) => [base, pressed && { opacity: 0.85 }, style, hero]}>
       {children}
     </Pressable>
   );
@@ -153,8 +154,10 @@ export function Button({
   style?: StyleProp<ViewStyle>;
 }) {
   const { c } = useTheme();
-  const bg = { primary: c.accent, secondary: c.surface2, ghost: 'transparent', danger: c.surface2 }[kind];
-  const fg: ColorName = kind === 'primary' ? 'onAccent' : kind === 'danger' ? 'danger' : 'ink';
+  const off = disabled && kind === 'primary';
+  const bg = off ? c.surface2 : { primary: c.accent, secondary: c.bg, ghost: 'transparent', danger: c.bg }[kind];
+  const fg: ColorName = off ? 'muted' : kind === 'primary' ? 'onAccent' : kind === 'danger' ? 'danger' : 'ink';
+  const outlined = kind === 'secondary' || kind === 'danger';
   return (
     <Pressable
       accessibilityRole="button"
@@ -164,6 +167,8 @@ export function Button({
       style={({ pressed }) => [
         {
           backgroundColor: kind === 'primary' && pressed ? c.accentPressed : bg,
+          borderWidth: outlined ? 1 : 0,
+          borderColor: c.line,
           borderRadius: radius.pill,
           minHeight: small ? 40 : 54,
           paddingHorizontal: small ? space.l : space.xl,
@@ -171,15 +176,16 @@ export function Button({
           alignItems: 'center',
           justifyContent: 'center',
           gap: space.s,
-          opacity: disabled ? 0.4 : pressed && kind !== 'primary' ? 0.7 : 1,
+          opacity: disabled && !off ? 0.4 : pressed && kind !== 'primary' ? 0.7 : 1,
         },
         style,
       ]}
     >
-      {loading ? <ActivityIndicator color={c[fg]} /> : icon && <Icon name={icon} size={small ? 16 : 18} color={fg} />}
+      {loading && <ActivityIndicator color={c[fg]} />}
       <Txt v="label" color={fg} style={{ fontFamily: font.b, fontSize: small ? 14 : 16 }}>
         {title}
       </Txt>
+      {!loading && icon && <Icon name={icon} size={small ? 16 : 18} color={fg} />}
     </Pressable>
   );
 }
@@ -198,7 +204,9 @@ export function IconButton({ icon, label, onPress, tone = 'surface' }: { icon: I
         borderRadius: 22,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: tone === 'accent' ? c.accent : tone === 'plain' ? 'transparent' : c.surface,
+        backgroundColor: tone === 'accent' ? c.accent : 'transparent',
+        borderWidth: tone === 'surface' ? 1 : 0,
+        borderColor: c.line,
         opacity: pressed ? 0.7 : 1,
       })}
     >
@@ -225,9 +233,12 @@ export function Segmented<T extends string | number>({ options, value, onChange,
             accessibilityRole="radio"
             accessibilityState={{ selected: on }}
             onPress={() => onChange(o.value)}
-            style={{ flex: 1, minHeight: 40, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? c.invert : 'transparent', paddingHorizontal: space.s }}
+            style={[
+              { flex: 1, minHeight: 40, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? c.raised : 'transparent', paddingHorizontal: space.s },
+              on && { shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+            ]}
           >
-            <Txt v="label" color={on ? 'onInvert' : 'muted'} numberOfLines={1}>
+            <Txt v="label" color={on ? 'ink' : 'muted'} numberOfLines={1}>
               {o.label}
             </Txt>
           </Pressable>
@@ -251,12 +262,14 @@ export function Chip({ label, on, onPress, icon }: { label: string; on: boolean;
         minHeight: 38,
         paddingHorizontal: 14,
         borderRadius: radius.pill,
-        backgroundColor: on ? c.accent : c.surface,
+        borderWidth: 1,
+        borderColor: on ? c.accent : c.line,
+        backgroundColor: on ? c.accentTint : c.bg,
         opacity: pressed ? 0.8 : 1,
       })}
     >
-      {icon && <Icon name={icon} size={15} color={on ? 'onAccent' : 'muted'} />}
-      <Txt v="label" color={on ? 'onAccent' : 'ink'}>
+      {icon && <Icon name={icon} size={15} color={on ? 'accentText' : 'muted'} />}
+      <Txt v="label" color={on ? 'accentText' : 'ink'}>
         {label}
       </Txt>
     </Pressable>
@@ -272,7 +285,7 @@ export function Field({ label, suffix, style, ...input }: { label: string; suffi
   return (
     <View style={[{ gap: 6 }, style]}>
       <Txt v="label" color="muted">{label}</Txt>
-      <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: c.surface2, borderRadius: radius.field, paddingHorizontal: space.l, minHeight: 52 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: c.bg, borderWidth: 1, borderColor: c.line, borderRadius: radius.field, paddingHorizontal: space.l, minHeight: 52 }}>
         <TextInput
           accessibilityLabel={label}
           placeholderTextColor={c.muted}
@@ -355,7 +368,7 @@ export function BigNumber({ value, unit, color = 'ink', size = 'display' }: { va
   return (
     <Row gap={6} style={{ alignItems: 'baseline' }}>
       <Txt v={size} num color={color}>{value}</Txt>
-      {unit ? <Txt v="heading" color={color === 'ink' ? 'muted' : color}>{unit}</Txt> : null}
+      {unit ? <Txt v="heading" color={color === 'ink' || color === 'onInvert' ? 'muted' : color} style={{ fontFamily: font.m, fontSize: 22 }}>{unit}</Txt> : null}
     </Row>
   );
 }
@@ -420,7 +433,7 @@ export function Formula({ text }: { text: string }) {
 export function Tag({ label, strong }: { label: string; strong?: boolean }) {
   const { c } = useTheme();
   return (
-    <View style={{ minHeight: 32, paddingHorizontal: 12, borderRadius: radius.pill, justifyContent: 'center', backgroundColor: strong ? c.accentTint : c.surface }}>
+    <View style={{ minHeight: 32, paddingHorizontal: 12, borderRadius: radius.pill, justifyContent: 'center', backgroundColor: strong ? c.accentTint : c.surface2 }}>
       <Txt v="caption" color={strong ? 'accentText' : 'muted'} style={{ fontFamily: font.s }}>{label}</Txt>
     </View>
   );
