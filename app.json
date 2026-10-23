@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "Plasma",
-    "slug": "plasma",
+    "name": "Glasses",
+    "slug": "glasses",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.phantom8420.plasma"
+      "bundleIdentifier": "com.phantom8420.glasses"
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +18,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.phantom8420.plasma"
+      "package": "com.phantom8420.glasses"
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -38,7 +38,7 @@
         }
       ]
     ],
-    "scheme": "plasma",
+    "scheme": "glasses",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",

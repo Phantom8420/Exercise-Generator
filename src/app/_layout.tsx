@@ -17,7 +17,7 @@ function Splash() {
   const { c } = useTheme();
   return (
     <View style={{ flex: 1, backgroundColor: c.bg, alignItems: 'center', justifyContent: 'center' }}>
-      <ActivityIndicator color={c.accent} accessibilityLabel="Loading Plasma" />
+      <ActivityIndicator color={c.accent} accessibilityLabel="Loading Glasses" />
     </View>
   );
 }

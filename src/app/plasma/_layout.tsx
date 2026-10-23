@@ -31,6 +31,15 @@ function TabBar({ state, navigateToTab }: BottomTabBarProps) {
   };
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: c.bg, paddingBottom: Math.max(insets.bottom, 10), paddingTop: 8, paddingHorizontal: 8, borderTopWidth: 1, borderTopColor: c.line }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Back to Glasses"
+        onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+        style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3, minHeight: 52 }}
+      >
+        <Icon name="arrow-left" size={22} color="muted" />
+        <Txt v="caption" color="muted" style={{ fontSize: 11 }}>Glasses</Txt>
+      </Pressable>
       {tab(0)}
       {tab(1)}
       <View style={{ flex: 1, alignItems: 'center' }}>
