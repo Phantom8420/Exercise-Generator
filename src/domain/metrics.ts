@@ -59,14 +59,19 @@ export function ageFrom(birthDate: string, on: Date = new Date()): number {
   return age;
 }
 
-/** Default weekly weight change (kg) per goal; the user can set any value. */
-export const DEFAULT_PACE_KG_PER_WEEK: Record<Goal, number> = {
-  lose_fat: -0.5,
+/** Default weekly weight change as % of bodyweight per goal (Helms 2014, Iraki 2019); the user can set any value. */
+export const DEFAULT_PACE_PCT_PER_WEEK: Record<Goal, number> = {
+  lose_fat: -0.7,
   gain_muscle: 0.25,
-  strength: 0.1,
+  strength: 0.15,
   maintain: 0,
-  recomp: -0.1,
+  recomp: -0.15,
 };
+
+/** Default pace in kg/week; without a weigh-in a 75 kg reference body is assumed. */
+export function defaultPaceKg(goal: Goal, weightKg: number | null): number {
+  return Math.round((weightKg ?? 75) * DEFAULT_PACE_PCT_PER_WEEK[goal] * 10) / 1000;
+}
 
 /** Protein g per kg bodyweight per goal. */
 export const PROTEIN_G_PER_KG: Record<Goal, number> = {

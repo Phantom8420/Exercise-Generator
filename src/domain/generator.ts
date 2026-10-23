@@ -1,5 +1,6 @@
+import { limitsFor } from './maxplan';
 import { rng } from './rng';
-import { GOAL_PARAMS, INTENSITY_SET_FACTOR, experienceLevel, rankFor, setSeconds, trainingPool } from './training';
+import { GOAL_PARAMS, INTENSITY_SET_FACTOR, MAX_SETS_PER_EXERCISE, experienceLevel, rankFor, setSeconds, trainingPool } from './training';
 import type { Exercise, Experience, Goal, Intensity, Muscle, PlannedDay, PlannedExercise, Split } from './types';
 
 export interface DayInput {
@@ -59,7 +60,7 @@ export function dayTemplates(split: Split, days: DayInput[]): { label: string; m
 
 /**
  * Fills each day round-robin over its muscles, best-ranked exercise first, until the
- * session's time budget is used. Deterministic for a given seed.
+ * session's time budget or the per-muscle session/weekly set caps are used. Deterministic for a given seed.
  */
 export function generateRoutine(input: GeneratorInput, exercises: Exercise[]): PlannedDay[] {
   const params = GOAL_PARAMS[input.goal];
@@ -68,10 +69,14 @@ export function generateRoutine(input: GeneratorInput, exercises: Exercise[]): P
   const random = rng(input.seed);
   const sortedDays = [...input.days].sort((a, b) => a.weekday - b.weekday);
   const templates = dayTemplates(input.split, sortedDays);
+  // Neutral recovery (3) gives the base caps; the max planner is where recovery is tuned.
+  const { weeklyCap, sessionCap } = limitsFor(input.experience, 3);
+  const weekly = new Map<Muscle, number>();
 
   return sortedDays.map((day, i) => {
     const { label, muscles } = templates[i];
-    const sets = Math.max(1, Math.round(params.setsPerExercise * INTENSITY_SET_FACTOR[day.intensity]));
+    const sets = Math.min(MAX_SETS_PER_EXERCISE, Math.max(1, Math.round(params.setsPerExercise * INTENSITY_SET_FACTOR[day.intensity])));
+    const session = new Map<Muscle, number>();
     const perSet = setSeconds(params.repMin, params.repMax, params.restS);
     let remaining = day.minutes * 60;
 
@@ -90,8 +95,12 @@ export function generateRoutine(input: GeneratorInput, exercises: Exercise[]): P
     while (progressed) {
       progressed = false;
       for (const m of muscles) {
-        const fit = Math.min(sets, Math.floor(remaining / perSet));
-        if (fit < 1) break;
+        const time = Math.floor(remaining / perSet);
+        if (time < 1) break;
+        const done = session.get(m) ?? 0;
+        const week = weekly.get(m) ?? 0;
+        const fit = Math.min(sets, time, sessionCap - done, weeklyCap - week);
+        if (fit < 1) continue;
         const q = queues.get(m)!;
         while (q.length && used.has(q[0].id)) q.shift();
         const ex = q.shift();
@@ -99,6 +108,8 @@ export function generateRoutine(input: GeneratorInput, exercises: Exercise[]): P
         used.add(ex.id);
         planned.push({ exerciseId: ex.id, sets: fit, repMin: params.repMin, repMax: params.repMax, restS: params.restS });
         remaining -= fit * perSet;
+        session.set(m, done + fit);
+        weekly.set(m, week + fit);
         progressed = true;
       }
     }

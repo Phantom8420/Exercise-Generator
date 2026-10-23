@@ -58,6 +58,34 @@ describe('generateRoutine', () => {
     const [day] = generateRoutine({ ...base, goal: 'strength', split: 'full_body', days: [{ weekday: 0, intensity: 'moderate', minutes: 60 }] }, lib);
     expect(day.exercises[0]).toMatchObject({ repMin: 3, repMax: 6, restS: 180 });
   });
+
+  it('fat loss trains like hypertrophy, not high reps', () => {
+    const [day] = generateRoutine({ ...base, goal: 'lose_fat', split: 'full_body', days: [{ weekday: 0, intensity: 'moderate', minutes: 60 }] }, lib);
+    expect(day.exercises[0]).toMatchObject({ repMin: 6, repMax: 12, restS: 90 });
+  });
+
+  it('caps sets per exercise even at extreme intensity', () => {
+    const [day] = generateRoutine({ ...base, goal: 'strength', split: 'full_body', days: [{ weekday: 0, intensity: 'extreme', minutes: 600 }] }, lib);
+    expect(Math.max(...day.exercises.map((e) => e.sets))).toBe(5);
+  });
+
+  it('caps sets per muscle per session and per week', () => {
+    const muscleSets = (days: ReturnType<typeof generateRoutine>) => {
+      const sets: Record<string, number> = {};
+      for (const e of days.flatMap((d) => d.exercises)) {
+        const m = lib.find((x) => x.id === e.exerciseId)!.primary[0];
+        sets[m] = (sets[m] ?? 0) + e.sets;
+      }
+      return Math.max(...Object.values(sets));
+    };
+    const one = generateRoutine({ ...base, split: 'custom', days: [{ weekday: 0, intensity: 'extreme', minutes: 600, muscles: ['chest'] }] }, lib);
+    expect(muscleSets(one)).toBeLessThanOrEqual(8);
+    const week = generateRoutine(
+      { ...base, split: 'full_body', days: [0, 1, 2, 3, 4].map((weekday) => ({ weekday, intensity: 'extreme' as const, minutes: 600 })) },
+      lib,
+    );
+    expect(muscleSets(week)).toBeLessThanOrEqual(18);
+  });
 });
 
 describe('substitutes', () => {

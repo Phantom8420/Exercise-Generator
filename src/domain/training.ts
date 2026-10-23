@@ -11,7 +11,8 @@ export interface GoalParams {
 export const GOAL_PARAMS: Record<Goal, GoalParams> = {
   strength: { repMin: 3, repMax: 6, restS: 180, setsPerExercise: 4 },
   gain_muscle: { repMin: 8, repMax: 12, restS: 90, setsPerExercise: 3 },
-  lose_fat: { repMin: 10, repMax: 15, restS: 60, setsPerExercise: 3 },
+  // In a deficit the job is keeping muscle, so train like hypertrophy, not "high reps to burn fat".
+  lose_fat: { repMin: 6, repMax: 12, restS: 90, setsPerExercise: 3 },
   maintain: { repMin: 8, repMax: 12, restS: 90, setsPerExercise: 2 },
   recomp: { repMin: 6, repMax: 10, restS: 120, setsPerExercise: 3 },
 };
@@ -22,6 +23,9 @@ export const INTENSITY_SET_FACTOR: Record<Intensity, number> = {
   high: 1.34,
   extreme: 1.67,
 };
+
+/** Working sets beyond this on one exercise are mostly fatigue; extra volume goes to more exercises. */
+export const MAX_SETS_PER_EXERCISE = 5;
 
 const SECONDS_PER_REP = 3;
 

@@ -1,4 +1,4 @@
-import { ageFrom, bmi, calorieTarget, mifflinStJeor, movingAverage, navyBodyFat, proteinTarget, tdee } from '../metrics';
+import { ageFrom, bmi, calorieTarget, defaultPaceKg, mifflinStJeor, movingAverage, navyBodyFat, proteinTarget, tdee } from '../metrics';
 import { displayWeight, lbToKg, storeWeight } from '../units';
 
 describe('metrics', () => {
@@ -30,6 +30,13 @@ describe('metrics', () => {
     expect(calorieTarget(2759, -0.5).value).toBe(2759 - 550);
     // Any pace is accepted, including extreme ones.
     expect(calorieTarget(2000, -2).value).toBe(2000 - 2200);
+  });
+
+  it('default pace scales with bodyweight', () => {
+    expect(defaultPaceKg('lose_fat', 100)).toBeCloseTo(-0.7, 6);
+    expect(defaultPaceKg('lose_fat', 50)).toBeCloseTo(-0.35, 6);
+    expect(defaultPaceKg('gain_muscle', null)).toBeCloseTo(0.188, 6);
+    expect(defaultPaceKg('maintain', 80)).toBe(0);
   });
 
   it('protein target', () => {

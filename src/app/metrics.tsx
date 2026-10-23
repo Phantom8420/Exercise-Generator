@@ -4,7 +4,7 @@ import { addBodyMetric, deleteBodyMetric, getUser, listBodyMetrics, updateUser, 
 import { setTarget } from '../db/repo/nutrition';
 import { today } from '../domain/dates';
 import {
-  ACTIVITY, ageFrom, bmi, calorieTarget, DEFAULT_PACE_KG_PER_WEEK, mifflinStJeor, movingAverage, navyBodyFat, proteinTarget, tdee, type Result,
+  ACTIVITY, ageFrom, bmi, calorieTarget, defaultPaceKg, mifflinStJeor, movingAverage, navyBodyFat, proteinTarget, tdee, type Result,
 } from '../domain/metrics';
 import { GOAL_LABEL, type Goal } from '../domain/types';
 import { displayLength, displayWeight, lengthUnit, round, storeLength, storeWeight } from '../domain/units';
@@ -50,7 +50,7 @@ function Body({ user, entries }: { user: User; entries: Awaited<ReturnType<typeo
     if (user.birthDate) {
       const bmr = mifflinStJeor(user.sex, latestKg, user.heightCm, ageFrom(user.birthDate));
       const t = tdee(bmr.value, user.activityFactor);
-      const pace = user.paceKgWeek ?? DEFAULT_PACE_KG_PER_WEEK[user.goal];
+      const pace = user.paceKgWeek ?? defaultPaceKg(user.goal, latestKg);
       results.push({ title: 'BMR', r: bmr, unit: 'kcal' });
       results.push({ title: 'TDEE', r: t, unit: 'kcal' });
       results.push({ title: 'Calorie target', r: calorieTarget(t.value, pace), unit: 'kcal' });
@@ -132,7 +132,7 @@ function Body({ user, entries }: { user: User; entries: Awaited<ReturnType<typeo
             label={`Pace (${u.w} per week, negative to lose)`}
             keyboardType="numbers-and-punctuation"
             key={user.goal}
-            defaultValue={String(displayWeight(user.paceKgWeek ?? DEFAULT_PACE_KG_PER_WEEK[user.goal], u.units))}
+            defaultValue={String(displayWeight(user.paceKgWeek ?? defaultPaceKg(user.goal, latestKg), u.units))}
             onEndEditing={(e) => {
               const v = num(e.nativeEvent.text);
               if (v != null) save({ paceKgWeek: storeWeight(v, u.units) });
