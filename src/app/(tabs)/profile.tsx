@@ -29,6 +29,7 @@ export default function Profile() {
             { icon: 'award', title: 'Challenges', subtitle: 'Volume, reps, calories, streaks', href: '/challenges' },
             { icon: 'rotate-ccw', title: 'What you owe', subtitle: d.debts.length ? `${d.debts.length} open` : 'All square', href: '/debt' },
             { icon: 'clock', title: 'History', subtitle: 'Every session you logged', href: '/history' },
+            { icon: 'camera', title: 'Progress photos', subtitle: 'One after every workout', href: '/photos' },
           ];
           return (
             <>

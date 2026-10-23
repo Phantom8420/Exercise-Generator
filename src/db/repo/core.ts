@@ -21,23 +21,28 @@ export interface User {
   recovery: number;
   activityFactor: number;
   paceKgWeek: number | null;
+  targetBfPct: number | null;
+  targetDate: string | null;
 }
 
 export async function getUser(db: Db): Promise<User> {
   const r = await db.get<{
     name: string | null; sex: Sex; birth_date: string | null; height_cm: number | null; goal: Goal;
     experience: Experience; recovery: number; activity_factor: number; pace_kg_week: number | null;
+    target_bf_pct: number | null; target_date: string | null;
   }>('SELECT * FROM user WHERE id = 1');
   if (!r) throw new Error('user row missing; migrations did not run');
   return {
     name: r.name, sex: r.sex, birthDate: r.birth_date, heightCm: r.height_cm, goal: r.goal, experience: r.experience,
     recovery: r.recovery, activityFactor: r.activity_factor, paceKgWeek: r.pace_kg_week,
+    targetBfPct: r.target_bf_pct, targetDate: r.target_date,
   };
 }
 
 const USER_COLS: Record<keyof User, string> = {
   name: 'name', sex: 'sex', birthDate: 'birth_date', heightCm: 'height_cm', goal: 'goal', experience: 'experience',
   recovery: 'recovery', activityFactor: 'activity_factor', paceKgWeek: 'pace_kg_week',
+  targetBfPct: 'target_bf_pct', targetDate: 'target_date',
 };
 
 export async function updateUser(db: Db, patch: Partial<User>): Promise<void> {

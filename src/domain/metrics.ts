@@ -73,6 +73,19 @@ export function defaultPaceKg(goal: Goal, weightKg: number | null): number {
   return Math.round((weightKg ?? 75) * DEFAULT_PACE_PCT_PER_WEEK[goal] * 10) / 1000;
 }
 
+/**
+ * Weekly kg change to reach a body-fat % by a date, assuming lean mass stays put.
+ * Any target and any timeline are allowed; how extreme is the user's call.
+ */
+export function bodyFatGoalPace(weightKg: number, bfPct: number, targetBfPct: number, weeks: number): Result {
+  const lean = weightKg * (1 - bfPct / 100);
+  const targetKg = lean / (1 - targetBfPct / 100);
+  return {
+    value: weeks > 0 ? (targetKg - weightKg) / weeks : 0,
+    formula: `lean ${Math.round(lean * 10) / 10} kg ÷ (1 − ${targetBfPct}%) = ${Math.round(targetKg * 10) / 10} kg, over ${Math.round(weeks * 10) / 10} weeks`,
+  };
+}
+
 /** Protein g per kg bodyweight per goal. */
 export const PROTEIN_G_PER_KG: Record<Goal, number> = {
   lose_fat: 2.2,
@@ -87,7 +100,7 @@ const KCAL_PER_KG = 7700;
 export function calorieTarget(tdeeKcal: number, paceKgPerWeek: number): Result {
   return {
     value: tdeeKcal + (paceKgPerWeek * KCAL_PER_KG) / 7,
-    formula: `kcal = TDEE + pace (${paceKgPerWeek} kg/wk) × 7700 / 7`,
+    formula: `kcal = TDEE + pace (${Math.round(paceKgPerWeek * 100) / 100} kg/wk) × 7700 / 7`,
   };
 }
 

@@ -24,9 +24,6 @@ export const INTENSITY_SET_FACTOR: Record<Intensity, number> = {
   extreme: 1.67,
 };
 
-/** Working sets beyond this on one exercise are mostly fatigue; extra volume goes to more exercises. */
-export const MAX_SETS_PER_EXERCISE = 5;
-
 const SECONDS_PER_REP = 3;
 
 /** Wall-clock seconds for one set including its rest. */

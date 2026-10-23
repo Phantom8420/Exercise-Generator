@@ -1,6 +1,6 @@
 import { confidence, matchFoods } from '../matcher';
 import { parseItem, parseMenu } from '../menu';
-import { maximizeProtein, suggestSwaps, type MenuItem } from '../optimizer';
+import { maximizeProtein, portionScale, suggestSwaps, type MenuItem } from '../optimizer';
 
 describe('menu parsing', () => {
   it('items with grams, counts and trailing weights', () => {
@@ -112,4 +112,10 @@ describe('optimizer', () => {
     expect(swaps.map((s) => s.key)).toEqual(['chicken']);
     expect(swaps[0].proteinGain).toBeGreaterThan(0);
   });
+});
+
+it('scales remaining portions to what is left of the day', () => {
+  expect(portionScale(600, 1200)).toBe(0.5);
+  expect(portionScale(-100, 800)).toBe(0);
+  expect(portionScale(500, 0)).toBeNull();
 });

@@ -192,8 +192,11 @@ export async function foodLogFor(db: Db, day: string): Promise<FoodLogEntry[]> {
 
 export async function kcalByDay(db: Db, from: string, to: string): Promise<Record<string, number>> {
   const rows = await db.all<{ day: string; kcal: number }>(
-    'SELECT l.day, SUM(f.kcal * l.grams / 100) kcal FROM food_log l JOIN food f ON f.id = l.food_id WHERE l.day BETWEEN ? AND ? GROUP BY l.day',
-    [from, to],
+    `SELECT day, SUM(kcal) kcal FROM (
+       SELECT l.day, f.kcal * l.grams / 100 kcal FROM food_log l JOIN food f ON f.id = l.food_id WHERE l.day BETWEEN ? AND ?
+       UNION ALL SELECT day, kcal FROM dish_log WHERE day BETWEEN ? AND ?
+     ) GROUP BY day`,
+    [from, to, from, to],
   );
   return Object.fromEntries(rows.map((r) => [r.day, r.kcal]));
 }
@@ -209,6 +212,51 @@ export function totals(entries: { grams: number; food: Food | null }[]) {
     t.fat += e.food.fat * k;
   }
   return t;
+}
+
+// ---------- revealed calories (hostel style: the menu comes first, kcal per dish at the meal) ----------
+export interface DishEntry {
+  id: number;
+  day: string;
+  mealId: number | null;
+  mealItemId: number | null;
+  name: string;
+  kcal: number;
+  protein: number;
+}
+
+export const dishKey = (name: string) => name.trim().toLowerCase();
+
+/** Stores what was eaten and remembers each dish's kcal for the next time it is on the menu. */
+export async function logDishes(db: Db, day: string, mealId: number, dishes: { mealItemId: number | null; name: string; kcal: number; protein: number }[]): Promise<void> {
+  await db.tx(async () => {
+    for (const d of dishes) {
+      await db.run('INSERT INTO dish_log (day, meal_id, meal_item_id, name, kcal, protein) VALUES (?, ?, ?, ?, ?, ?)', [day, mealId, d.mealItemId, d.name, d.kcal, d.protein]);
+      await db.run('INSERT INTO dish_kcal (name, kcal, protein) VALUES (?, ?, ?) ON CONFLICT (name) DO UPDATE SET kcal = excluded.kcal, protein = excluded.protein', [dishKey(d.name), d.kcal, d.protein]);
+    }
+  });
+}
+
+/** Marks a meal as not eaten today (one-meal-a-day and the like). */
+export async function skipMeal(db: Db, day: string, mealId: number): Promise<void> {
+  await db.run("INSERT INTO dish_log (day, meal_id, name, kcal) VALUES (?, ?, 'Skipped', 0)", [day, mealId]);
+}
+
+export async function clearMealLog(db: Db, day: string, mealId: number): Promise<void> {
+  await db.run('DELETE FROM dish_log WHERE day = ? AND meal_id = ?', [day, mealId]);
+}
+
+export async function dishLogFor(db: Db, day: string): Promise<DishEntry[]> {
+  const rows = await db.all<{ id: number; day: string; meal_id: number | null; meal_item_id: number | null; name: string; kcal: number; protein: number }>(
+    'SELECT * FROM dish_log WHERE day = ? ORDER BY id',
+    [day],
+  );
+  return rows.map((r) => ({ id: r.id, day: r.day, mealId: r.meal_id, mealItemId: r.meal_item_id, name: r.name, kcal: r.kcal, protein: r.protein }));
+}
+
+export async function learnedDishes(db: Db): Promise<Map<string, { kcal: number; protein: number }>> {
+  const rows = await db.all<{ name: string; kcal: number; protein: number }>('SELECT * FROM dish_kcal');
+  return new Map(rows.map((r) => [r.name, { kcal: r.kcal, protein: r.protein }]));
 }
 
 // ---------- targets ----------

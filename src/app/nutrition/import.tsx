@@ -1,6 +1,8 @@
 import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
+import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
+import { extractTextFromImage, isSupported as ocrSupported } from 'expo-text-extractor';
 import { useState } from 'react';
 import { importMenu } from '../../db/repo/nutrition';
 import { parseMenu } from '../../domain/menu';
@@ -39,6 +41,19 @@ export default function Import() {
     }
   };
 
+  const scan = async () => {
+    setError(null);
+    try {
+      const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1 });
+      if (res.canceled) return;
+      const lines = await extractTextFromImage(res.assets[0].uri);
+      if (!lines.length) return setError('No text found in that photo. Try a sharper, straight-on shot.');
+      setText((t) => (t.trim() ? `${t}\n${lines.join('\n')}` : lines.join('\n')));
+    } catch (e) {
+      setError(`Couldn't read that photo: ${(e as Error).message}`);
+    }
+  };
+
   const save = async () => {
     setBusy(true);
     try {
@@ -53,8 +68,9 @@ export default function Import() {
   return (
     <Screen back title="Import menu">
       <Txt color="muted">
-        Paste text or pick a .txt or .csv file. Day names (Mon, Tuesday) start a day; "Lunch:" or "Meal 2:" starts a meal. A menu with no day names repeats every day. CSV needs a "food" column; day, meal, grams and quantity are optional.
+        Scan a photo of the menu notice, paste text, or pick a .txt or .csv file. Scanned text lands below so you can fix it. Day names (Mon, Tuesday) start a day; "Lunch:" or "Meal 2:" starts a meal. A menu with no day names repeats every day. CSV needs a "food" column; day, meal, grams and quantity are optional.
       </Txt>
+      {ocrSupported && <Button icon="camera" title="Scan menu photo" onPress={scan} />}
       <Row>
         <Button kind="secondary" icon="file" title="Pick a file" onPress={pickFile} style={{ flex: 1 }} />
         <Button kind="ghost" title="Use example" onPress={() => setText(EXAMPLE)} style={{ flex: 1 }} />

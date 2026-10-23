@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { addBodyMetric, deleteBodyMetric, getUser, listBodyMetrics, updateUser, type User } from '../db/repo/core';
 import { setTarget } from '../db/repo/nutrition';
-import { today } from '../domain/dates';
+import { daysBetween, today } from '../domain/dates';
 import {
-  ACTIVITY, ageFrom, bmi, calorieTarget, defaultPaceKg, mifflinStJeor, movingAverage, navyBodyFat, proteinTarget, tdee, type Result,
+  ACTIVITY, ageFrom, bmi, bodyFatGoalPace, calorieTarget, defaultPaceKg, mifflinStJeor, movingAverage, navyBodyFat, proteinTarget, tdee, type Result,
 } from '../domain/metrics';
 import { GOAL_LABEL, type Goal } from '../domain/types';
 import { displayLength, displayWeight, lengthUnit, round, storeLength, storeWeight } from '../domain/units';
@@ -43,14 +43,21 @@ function Body({ user, entries }: { user: User; entries: Awaited<ReturnType<typeo
   const lastMeasures = [...entries].reverse().find((e) => e.waistCm != null && e.neckCm != null);
   const lastManualBf = [...entries].reverse().find((e) => e.bodyFatSource === 'manual');
 
+  const navy = latestKg && user.heightCm && lastMeasures ? navyBodyFat(user.sex, user.heightCm, lastMeasures.waistCm!, lastMeasures.neckCm!, lastMeasures.hipCm ?? undefined) : null;
+  const currentBf = lastManualBf && (!lastMeasures || lastManualBf.measuredOn >= lastMeasures.measuredOn) ? lastManualBf.bodyFatPct : navy?.value ?? null;
+  const bfPace = latestKg && currentBf != null && user.targetBfPct != null && user.targetDate
+    ? bodyFatGoalPace(latestKg, currentBf, user.targetBfPct, daysBetween(today(), user.targetDate) / 7)
+    : null;
+  const pace = user.paceKgWeek ?? bfPace?.value ?? defaultPaceKg(user.goal, latestKg);
+
   const results: { title: string; r: Result | null; unit: string; note?: string }[] = [];
   if (latestKg && user.heightCm) {
     results.push({ title: 'BMI', r: bmi(latestKg, user.heightCm), unit: '', note: 'Crude: it ignores muscle, so lifters often read as "overweight".' });
-    if (lastMeasures) results.push({ title: 'Body fat (Navy)', r: navyBodyFat(user.sex, user.heightCm, lastMeasures.waistCm!, lastMeasures.neckCm!, lastMeasures.hipCm ?? undefined), unit: '%' });
+    if (lastMeasures) results.push({ title: 'Body fat (Navy)', r: navy, unit: '%', note: 'Tape estimate, usually within about ±4%.' });
+    if (bfPace) results.push({ title: `Pace to ${user.targetBfPct}% body fat`, r: bfPace, unit: `${u.w}/wk`, note: user.paceKgWeek != null ? 'Your manual pace below overrides this.' : 'Drives the calorie target.' });
     if (user.birthDate) {
       const bmr = mifflinStJeor(user.sex, latestKg, user.heightCm, ageFrom(user.birthDate));
       const t = tdee(bmr.value, user.activityFactor);
-      const pace = user.paceKgWeek ?? defaultPaceKg(user.goal, latestKg);
       results.push({ title: 'BMR', r: bmr, unit: 'kcal' });
       results.push({ title: 'TDEE', r: t, unit: 'kcal' });
       results.push({ title: 'Calorie target', r: calorieTarget(t.value, pace), unit: 'kcal' });
@@ -90,7 +97,7 @@ function Body({ user, entries }: { user: User; entries: Awaited<ReturnType<typeo
             <Card key={title}>
               <Row style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
                 <Txt v="heading">{title}</Txt>
-                <Txt v="title" num>{r ? `${round(r.value, unit === '' ? 1 : 0)}${unit === '%' ? '%' : ''}` : '—'}{unit && unit !== '%' ? <Txt v="label" color="muted"> {unit}</Txt> : null}</Txt>
+                <Txt v="title" num>{r ? `${unit.endsWith('/wk') ? displayWeight(r.value, u.units) : round(r.value, unit === '' ? 1 : 0)}${unit === '%' ? '%' : ''}` : '—'}{unit && unit !== '%' ? <Txt v="label" color="muted"> {unit}</Txt> : null}</Txt>
               </Row>
               {note && <Txt v="caption" color="muted">{note}</Txt>}
               {r ? <Formula text={r.formula} /> : <Txt v="caption" color="muted">These measurements don't give a valid result.</Txt>}
@@ -103,6 +110,7 @@ function Body({ user, entries }: { user: User; entries: Awaited<ReturnType<typeo
               onPress={() => write((db) => setTarget(db, today(), { kcal: Math.round(kcal), proteinG: Math.round(protein), carbsG: null, fatG: null, source: 'tdee' }))}
             />
           )}
+          {protein != null && <ManualKcal proteinG={protein} />}
         </Section>
       )}
       {results.length === 0 && <Txt color="muted">Add your height and a weigh-in to see BMI and protein; add a birth date for BMR, TDEE and a calorie target.</Txt>}
@@ -128,11 +136,21 @@ function Body({ user, entries }: { user: User; entries: Awaited<ReturnType<typeo
           <Chips>
             {(Object.keys(GOAL_LABEL) as Goal[]).map((g) => <Chip key={g} label={GOAL_LABEL[g]} on={user.goal === g} onPress={() => save({ goal: g, paceKgWeek: null })} />)}
           </Chips>
+          <Row>
+            <Field label="Target body fat %" keyboardType="decimal-pad" defaultValue={user.targetBfPct != null ? String(user.targetBfPct) : ''} placeholder="e.g. 12" style={{ flex: 1 }} onEndEditing={(e) => {
+              save({ targetBfPct: num(e.nativeEvent.text), paceKgWeek: null });
+            }} />
+            <Field label="By (YYYY-MM-DD)" keyboardType="numbers-and-punctuation" defaultValue={user.targetDate ?? ''} placeholder="2027-01-31" style={{ flex: 1 }} onEndEditing={(e) => {
+              const v = e.nativeEvent.text.trim();
+              if (/^\d{4}-\d{2}-\d{2}$/.test(v) || !v) save({ targetDate: v || null, paceKgWeek: null });
+            }} />
+          </Row>
+          {user.targetBfPct != null && currentBf == null && <Txt v="caption" color="muted">Log waist and neck (or a body fat %) so the goal can set your pace.</Txt>}
           <Field
             label={`Pace (${u.w} per week, negative to lose)`}
             keyboardType="numbers-and-punctuation"
-            key={user.goal}
-            defaultValue={String(displayWeight(user.paceKgWeek ?? defaultPaceKg(user.goal, latestKg), u.units))}
+            key={`${user.goal}${user.targetBfPct}${user.targetDate}`}
+            defaultValue={String(displayWeight(pace, u.units))}
             onEndEditing={(e) => {
               const v = num(e.nativeEvent.text);
               if (v != null) save({ paceKgWeek: storeWeight(v, u.units) });
@@ -164,6 +182,25 @@ function Body({ user, entries }: { user: User; entries: Awaited<ReturnType<typeo
         </Section>
       )}
     </>
+  );
+}
+
+/** Any calorie number is accepted, 1000 kcal one-meal days included. */
+function ManualKcal({ proteinG }: { proteinG: number }) {
+  const write = useWrite();
+  const [kcal, setKcal] = useState('');
+  const v = num(kcal);
+  return (
+    <Card style={{ gap: space.m }}>
+      <Txt v="heading">Or pick your own calories</Txt>
+      <Field label="Daily calories" suffix="kcal" keyboardType="number-pad" value={kcal} onChangeText={setKcal} placeholder="e.g. 1000" />
+      <Button
+        kind="secondary"
+        title="Use this target"
+        disabled={v == null || v <= 0}
+        onPress={() => write((db) => setTarget(db, today(), { kcal: Math.round(v!), proteinG: Math.round(proteinG), carbsG: null, fatG: null, source: 'manual' })).then(() => setKcal(''))}
+      />
+    </Card>
   );
 }
 

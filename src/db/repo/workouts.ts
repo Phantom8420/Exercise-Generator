@@ -117,3 +117,29 @@ export async function trainedDays(db: Db, since: string): Promise<Set<string>> {
 export async function recentSetsFor(db: Db, exerciseId: string, limit = 12): Promise<LoggedSet[]> {
   return (await db.all<SetRow>('SELECT * FROM logged_set WHERE exercise_id = ? ORDER BY id DESC LIMIT ?', [exerciseId, limit])).map(toSet);
 }
+
+// ---------- progress photos ----------
+export interface ProgressPhoto {
+  id: number;
+  sessionId: number | null;
+  day: string;
+  uri: string;
+}
+
+export async function addProgressPhoto(db: Db, sessionId: number, day: string, uri: string): Promise<void> {
+  await db.run('INSERT INTO progress_photo (session_id, day, uri) VALUES (?, ?, ?)', [sessionId, day, uri]);
+}
+
+export async function photoForSession(db: Db, sessionId: number): Promise<ProgressPhoto | null> {
+  const r = await db.get<{ id: number; session_id: number | null; day: string; uri: string }>('SELECT * FROM progress_photo WHERE session_id = ? ORDER BY id DESC LIMIT 1', [sessionId]);
+  return r ? { id: r.id, sessionId: r.session_id, day: r.day, uri: r.uri } : null;
+}
+
+export async function listProgressPhotos(db: Db): Promise<ProgressPhoto[]> {
+  const rows = await db.all<{ id: number; session_id: number | null; day: string; uri: string }>('SELECT * FROM progress_photo ORDER BY day DESC, id DESC');
+  return rows.map((r) => ({ id: r.id, sessionId: r.session_id, day: r.day, uri: r.uri }));
+}
+
+export async function deleteProgressPhoto(db: Db, id: number): Promise<void> {
+  await db.run('DELETE FROM progress_photo WHERE id = ?', [id]);
+}

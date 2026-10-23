@@ -212,6 +212,34 @@ export const MIGRATIONS: string[] = [
     source TEXT NOT NULL
   );
   `,
+  `
+  ALTER TABLE user ADD COLUMN target_bf_pct REAL;
+  ALTER TABLE user ADD COLUMN target_date TEXT;
+
+  CREATE TABLE progress_photo (
+    id INTEGER PRIMARY KEY,
+    session_id INTEGER REFERENCES workout_session (id) ON DELETE SET NULL,
+    day TEXT NOT NULL,
+    uri TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX progress_photo_day ON progress_photo (day);
+
+  -- Calories revealed at the meal, per dish. Counted alongside food_log.
+  CREATE TABLE dish_log (
+    id INTEGER PRIMARY KEY,
+    day TEXT NOT NULL,
+    meal_id INTEGER REFERENCES meal (id) ON DELETE SET NULL,
+    meal_item_id INTEGER REFERENCES meal_item (id) ON DELETE SET NULL,
+    name TEXT NOT NULL,
+    kcal REAL NOT NULL,
+    protein REAL NOT NULL DEFAULT 0
+  );
+  CREATE INDEX dish_log_day ON dish_log (day);
+
+  -- Last revealed kcal per dish name, used as the estimate next time it is on the menu.
+  CREATE TABLE dish_kcal (name TEXT PRIMARY KEY, kcal REAL NOT NULL, protein REAL NOT NULL DEFAULT 0);
+  `,
 ];
 
 export async function migrate(db: Db): Promise<number> {

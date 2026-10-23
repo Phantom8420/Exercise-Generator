@@ -5,12 +5,13 @@ import { View } from 'react-native';
 import { getExercise } from '../db/repo/exercises';
 import { deleteSet, equivalenceFor, listDebts, logSet } from '../db/repo/debts';
 import { activeDayFor } from '../db/repo/routines';
-import { activeSession, deleteSession, endSession, lastSetFor, setsForSession, startSession } from '../db/repo/workouts';
+import { activeSession, addProgressPhoto, deleteSession, endSession, lastSetFor, setsForSession, startSession } from '../db/repo/workouts';
 import { today, weekdayOf } from '../domain/dates';
 import { displayWeight, storeWeight } from '../domain/units';
 import { pickExercise } from '../state/pick';
 import { useUnits } from '../ui/format';
 import { PhotoHero } from '../media/ExerciseDemo';
+import { captureProgressPhoto } from '../media/progressPhoto';
 import { Button, Card, Divider, Field, Gate, IconButton, ListRow, ProgressBar, Row, Screen, Section, StatRow, Tag, Txt } from '../ui/kit';
 import { space } from '../ui/theme';
 import { useData, useWrite } from '../ui/useData';
@@ -33,6 +34,8 @@ export default function Workout() {
   const [reps, setReps] = useState(10);
   const [restLeft, setRestLeft] = useState(0);
   const [tick, setTick] = useState(Date.now());
+  const [needPhoto, setNeedPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   const state = useData(async (db) => {
     const [day, session, debts] = await Promise.all([activeDayFor(db, weekdayOf(now)), activeSession(db), listDebts(db)]);
@@ -88,10 +91,29 @@ export default function Workout() {
     setRestLeft(planned?.restS ?? 90);
   };
 
+  // A workout with sets can only be finished with a progress photo.
   const finish = async () => {
     const s = state.data?.session;
-    if (s) await write((db) => (state.data!.sets.length ? endSession(db, s.id) : deleteSession(db, s.id)));
+    if (s && state.data!.sets.length) return setNeedPhoto(true);
+    if (s) await write((db) => deleteSession(db, s.id));
     router.back();
+  };
+
+  const finishWithPhoto = async (source: 'camera' | 'library') => {
+    const s = state.data?.session;
+    if (!s) return;
+    setPhotoError(null);
+    try {
+      const uri = await captureProgressPhoto(source);
+      if (!uri) return;
+      await write(async (db) => {
+        await addProgressPhoto(db, s.id, s.day, uri);
+        await endSession(db, s.id);
+      });
+      router.back();
+    } catch (e) {
+      setPhotoError((e as Error).message);
+    }
   };
 
   const step = u.units === 'metric' ? 2.5 : 5;
@@ -107,6 +129,18 @@ export default function Workout() {
       <Gate state={state}>
         {(d) => {
           const doneFor = (id: string) => d.sets.filter((s) => s.exerciseId === id && s.debtId == null).length;
+          if (needPhoto) {
+            return (
+              <Card style={{ gap: space.m }}>
+                <Txt v="title">Progress photo</Txt>
+                <Txt color="muted">Shirtless, same spot and light each time so the changes show. It stays on this phone, compressed.</Txt>
+                <Button title="Take photo" icon="camera" onPress={() => finishWithPhoto('camera')} />
+                <Button kind="secondary" title="Pick from gallery" icon="image" onPress={() => finishWithPhoto('library')} />
+                {photoError && <Txt color="danger">{photoError}</Txt>}
+                <Button kind="ghost" title="Back to workout" onPress={() => setNeedPhoto(false)} />
+              </Card>
+            );
+          }
           return (
             <>
               {selected.data ? (

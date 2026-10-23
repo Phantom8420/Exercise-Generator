@@ -9,7 +9,7 @@ import { createChallenge, getChallenge } from '../repo/challenges';
 import { getSetting, setSetting } from '../repo/core';
 import { deleteSet, listDebts, logSet, setDebtCap, settleDebts } from '../repo/debts';
 import { allExercises, listExercises } from '../repo/exercises';
-import { activePlan, importMenu, totals } from '../repo/nutrition';
+import { activePlan, clearMealLog, dishLogFor, importMenu, kcalByDay, learnedDishes, logDishes, skipMeal, totals } from '../repo/nutrition';
 import { activeWeek, saveGeneratedRoutine } from '../repo/routines';
 import { startSession } from '../repo/workouts';
 import { seedExercises, seedFoods } from '../seed';
@@ -134,4 +134,18 @@ it('export skips bundled datasets and is valid JSON', async () => {
   expect(out.tables.food).toEqual([]);
   expect(out.tables.user).toHaveLength(1);
   expect(JSON.parse(JSON.stringify(out)).app).toBe('plasma');
+});
+
+it('counts revealed dish calories, remembers them, and skips meals', async () => {
+  const day = '2026-01-05';
+  await importMenu(db, 'Hostel', parseMenu('Lunch: Paneer butter masala, rice\nDinner: dal'));
+  const plan = (await activePlan(db))!;
+  const [lunch, dinner] = plan.meals;
+  await logDishes(db, day, lunch.id, [{ mealItemId: lunch.items[0].id, name: ' Paneer Butter Masala', kcal: 420, protein: 14 }]);
+  await skipMeal(db, day, dinner.id);
+  expect((await dishLogFor(db, day)).map((d) => d.kcal)).toEqual([420, 0]);
+  expect((await kcalByDay(db, day, day))[day]).toBe(420);
+  expect((await learnedDishes(db)).get('paneer butter masala')).toEqual({ kcal: 420, protein: 14 });
+  await clearMealLog(db, day, dinner.id);
+  expect(await dishLogFor(db, day)).toHaveLength(1);
 });

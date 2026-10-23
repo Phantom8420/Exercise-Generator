@@ -97,3 +97,12 @@ export function suggestSwaps(item: MenuItem, candidates: SwapCandidate[], limit 
     .sort((a, b) => b.proteinGain - a.proteinGain)
     .slice(0, limit);
 }
+
+/**
+ * How much of the usual portions to eat at the meals still ahead so the day lands on target.
+ * 1 = as planned, 0.5 = half. Null when no meals are left to adjust.
+ */
+export function portionScale(kcalLeft: number, upcomingKcal: number): number | null {
+  if (upcomingKcal <= 0) return null;
+  return Math.max(0, kcalLeft / upcomingKcal);
+}

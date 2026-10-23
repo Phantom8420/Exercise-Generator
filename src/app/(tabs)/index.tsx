@@ -1,9 +1,10 @@
-import { router } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { currentStreak } from '../../domain/challenges';
 import { addDays, today, weekdayOf } from '../../domain/dates';
 import { estimatedMinutes } from '../../domain/generator';
 import { WEEKDAYS } from '../../domain/types';
 import { listChallenges } from '../../db/repo/challenges';
+import { getSetting, getUser } from '../../db/repo/core';
 import { listDebts } from '../../db/repo/debts';
 import { activeDayFor, activeRoutine } from '../../db/repo/routines';
 import { activeSession, trainedDays, volumeByDay } from '../../db/repo/workouts';
@@ -27,10 +28,12 @@ export default function Home() {
       listChallenges(db), volumeByDay(db, monday, addDays(monday, 6)), trainedDays(db, addDays(now, -365)),
       getExercise(db, 'Barbell_Squat'),
     ]);
+    // Existing installs that already have a height skip onboarding.
+    const onboard = !(await getSetting(db, 'onboarded')) && (await getUser(db)).heightCm == null;
     const owed = debts.flatMap((d) => d.allocations.filter((a) => a.day === now).map((a) => ({ debt: d, amount: a.amount })));
     const week = WEEKDAYS.map((label, i) => ({ label: label.slice(0, 1), value: vol[addDays(monday, i)]?.volume ?? 0 }));
     return {
-      routine, day, session, owed, week,
+      onboard, routine, day, session, owed, week,
       photo: day?.exercises[0]?.exercise ?? fallback,
       challenges: challenges.filter((c) => !c.progress.done).slice(0, 2),
       streak: currentStreak(trained, now, addDays(now, -365)),
@@ -40,7 +43,7 @@ export default function Home() {
   return (
     <Screen glow title={fmtDate(now)} right={<IconButton icon="settings" label="Settings" onPress={() => router.push('/settings')} />}>
       <Gate state={state}>
-        {(d) => (
+        {(d) => d.onboard ? <Redirect href="/onboarding" /> : (
           <>
             <PhotoHero exercise={d.photo}>
               {!d.routine ? (

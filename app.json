@@ -32,6 +32,13 @@
       "expo-font",
       "expo-sharing",
       [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Plasma uses the camera for progress photos and menu scans.",
+          "photosPermission": "Plasma reads photos you pick for progress shots and menu scans."
+        }
+      ],
+      [
         "expo-notifications",
         {
           "color": "#F2620F"

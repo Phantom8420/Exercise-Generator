@@ -1,4 +1,4 @@
-import { ageFrom, bmi, calorieTarget, defaultPaceKg, mifflinStJeor, movingAverage, navyBodyFat, proteinTarget, tdee } from '../metrics';
+import { ageFrom, bmi, bodyFatGoalPace, calorieTarget, defaultPaceKg, mifflinStJeor, movingAverage, navyBodyFat, proteinTarget, tdee } from '../metrics';
 import { displayWeight, lbToKg, storeWeight } from '../units';
 
 describe('metrics', () => {
@@ -57,4 +57,11 @@ describe('metrics', () => {
     expect(displayWeight(storeWeight(225, 'imperial'), 'imperial')).toBe(225);
     expect(lbToKg(220.46226218)).toBeCloseTo(100, 6);
   });
+});
+
+it('paces weight to a body-fat target with lean mass held', () => {
+  // 80 kg at 20% → 64 kg lean; 15% target → 75.29 kg, over 12 weeks.
+  const p = bodyFatGoalPace(80, 20, 15, 12);
+  expect(p.value).toBeCloseTo((64 / 0.85 - 80) / 12, 5);
+  expect(bodyFatGoalPace(80, 20, 15, 0).value).toBe(0);
 });
