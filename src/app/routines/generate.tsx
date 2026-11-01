@@ -6,7 +6,7 @@ import { allExercises } from '../../db/repo/exercises';
 import { saveGeneratedRoutine } from '../../db/repo/routines';
 import { estimatedMinutes, generateRoutine, type DayInput } from '../../domain/generator';
 import { TRAINABLE } from '../../domain/training';
-import { GOAL_LABEL, SPLIT_LABEL, WEEKDAYS, type Experience, type Goal, type Intensity, type Split } from '../../domain/types';
+import { GOAL_LABEL, SPLIT_LABEL, goalsLabel, primaryGoal, toggleGoal, WEEKDAYS, type Experience, type Goal, type Intensity, type Split } from '../../domain/types';
 import { cap } from '../../ui/format';
 import { Button, Card, Chip, Chips, Divider, Field, Gate, ListRow, Row, Screen, Section, Segmented, Stepper, Txt } from '../../ui/kit';
 import { space } from '../../ui/theme';
@@ -33,13 +33,13 @@ export default function Generate() {
 }
 
 function Form({ user, exercises, equipment, save }: {
-  user: { goal: Goal; experience: Experience };
+  user: { goals: Goal[]; experience: Experience };
   exercises: Parameters<typeof generateRoutine>[1];
   equipment: string[];
   save: ReturnType<typeof useWrite>;
 }) {
   const [split, setSplit] = useState<Split>('ppl');
-  const [goal, setGoal] = useState<Goal>(user.goal);
+  const [goals, setGoals] = useState<Goal[]>(user.goals);
   const [experience, setExperience] = useState<Experience>(user.experience);
   const [days, setDays] = useState<DayInput[]>([0, 2, 4].map((weekday) => ({ weekday, intensity: 'moderate', minutes: 60 })));
   const [seed, setSeed] = useState(1);
@@ -50,12 +50,12 @@ function Form({ user, exercises, equipment, save }: {
     setDays((ds) => (ds.some((d) => d.weekday === w) ? ds.filter((d) => d.weekday !== w) : [...ds, { weekday: w, intensity: 'moderate' as const, minutes: 60 }].sort((a, b) => a.weekday - b.weekday)));
   const patchDay = (w: number, p: Partial<DayInput>) => setDays((ds) => ds.map((d) => (d.weekday === w ? { ...d, ...p } : d)));
 
-  const input = { split, goal, experience, equipment, days, seed };
+  const input = { split, goal: primaryGoal(goals), experience, equipment, days, seed };
   const preview = useMemo(() => generateRoutine(input, exercises), [JSON.stringify(input), exercises]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const submit = async () => {
     setSaving(true);
-    const id = await save((db) => saveGeneratedRoutine(db, name.trim() || `${SPLIT_LABEL[split]} · ${GOAL_LABEL[goal]}`, split, goal, preview, input));
+    const id = await save((db) => saveGeneratedRoutine(db, name.trim() || `${SPLIT_LABEL[split]} · ${goalsLabel(goals)}`, split, goals, preview, input));
     router.replace(`/routines/${id}`);
   };
 
@@ -68,7 +68,7 @@ function Form({ user, exercises, equipment, save }: {
       </Section>
       <Section title="Goal">
         <Chips>
-          {(Object.keys(GOAL_LABEL) as Goal[]).map((g) => <Chip key={g} label={GOAL_LABEL[g]} on={goal === g} onPress={() => setGoal(g)} />)}
+          {(Object.keys(GOAL_LABEL) as Goal[]).map((g) => <Chip key={g} label={GOAL_LABEL[g]} on={goals.includes(g)} onPress={() => setGoals(toggleGoal(goals, g))} />)}
         </Chips>
       </Section>
       <Section title="Experience">
@@ -127,7 +127,7 @@ function Form({ user, exercises, equipment, save }: {
           </Card>
         ))}
       </Section>
-      <Field label="Name" value={name} onChangeText={setName} placeholder={`${SPLIT_LABEL[split]} · ${GOAL_LABEL[goal]}`} />
+      <Field label="Name" value={name} onChangeText={setName} placeholder={`${SPLIT_LABEL[split]} · ${goalsLabel(goals)}`} />
       <Button title="Save and make active" icon="check" disabled={!preview.length} loading={saving} onPress={submit} />
     </>
   );

@@ -5,7 +5,7 @@ import { activeEquipment, getUser, updateUser, type User } from '../db/repo/core
 import { allExercises } from '../db/repo/exercises';
 import { saveGeneratedRoutine } from '../db/repo/routines';
 import { maxPlan, type MaxPlanInput } from '../domain/maxplan';
-import { GOAL_LABEL, WEEKDAYS, type Exercise } from '../domain/types';
+import { WEEKDAYS, goalsLabel, type Exercise } from '../domain/types';
 import { cap } from '../ui/format';
 import { BigNumber, Button, Card, Chip, Chips, Divider, Formula, Gate, ListRow, Row, Screen, Section, Segmented, Stepper, Txt } from '../ui/kit';
 import { space } from '../ui/theme';
@@ -42,14 +42,14 @@ function Body({ user, exercises, equipment }: { user: User; exercises: Exercise[
     setSaving(true);
     const id = await write(async (db) => {
       await updateUser(db, { recovery });
-      return saveGeneratedRoutine(db, `Max plan · ${e.totalSets} sets`, 'custom', user.goal, result.days, input);
+      return saveGeneratedRoutine(db, `Max plan · ${e.totalSets} sets`, 'custom', user.goals, result.days, input);
     });
     router.replace(`/routines/${id}`);
   };
 
   return (
     <>
-      <Txt color="muted">The most weekly sets that fit your days and session length, for {GOAL_LABEL[user.goal].toLowerCase()} at {user.experience} level.</Txt>
+      <Txt color="muted">The most weekly sets that fit your days and session length, for {goalsLabel(user.goals).toLowerCase()} at {user.experience} level.</Txt>
       <Section title="Days">
         <Chips>
           {WEEKDAYS.map((w, i) => (

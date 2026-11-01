@@ -6,7 +6,7 @@ import { daysBetween, today } from '../domain/dates';
 import {
   ACTIVITY, ageFrom, bmi, bodyFatGoalPace, calorieTarget, defaultPaceKg, mifflinStJeor, movingAverage, navyBodyFat, proteinTarget, tdee, type Result,
 } from '../domain/metrics';
-import { GOAL_LABEL, type Goal } from '../domain/types';
+import { GOAL_LABEL, toggleGoal, type Goal } from '../domain/types';
 import { displayLength, displayWeight, lengthUnit, round, storeLength, storeWeight } from '../domain/units';
 import { LineChart } from '../ui/charts';
 import { fmtDate, useUnits } from '../ui/format';
@@ -48,7 +48,7 @@ function Body({ user, entries }: { user: User; entries: Awaited<ReturnType<typeo
   const bfPace = latestKg && currentBf != null && user.targetBfPct != null && user.targetDate
     ? bodyFatGoalPace(latestKg, currentBf, user.targetBfPct, daysBetween(today(), user.targetDate) / 7)
     : null;
-  const pace = user.paceKgWeek ?? bfPace?.value ?? defaultPaceKg(user.goal, latestKg);
+  const pace = user.paceKgWeek ?? bfPace?.value ?? defaultPaceKg(user.goals, latestKg);
 
   const results: { title: string; r: Result | null; unit: string; note?: string }[] = [];
   if (latestKg && user.heightCm) {
@@ -62,7 +62,7 @@ function Body({ user, entries }: { user: User; entries: Awaited<ReturnType<typeo
       results.push({ title: 'TDEE', r: t, unit: 'kcal' });
       results.push({ title: 'Calorie target', r: calorieTarget(t.value, pace), unit: 'kcal' });
     }
-    results.push({ title: 'Protein target', r: proteinTarget(latestKg, user.goal), unit: 'g' });
+    results.push({ title: 'Protein target', r: proteinTarget(latestKg, user.goals), unit: 'g' });
   }
   const kcal = results.find((x) => x.title === 'Calorie target')?.r?.value;
   const protein = results.find((x) => x.title === 'Protein target')?.r?.value;
@@ -134,7 +134,7 @@ function Body({ user, entries }: { user: User; entries: Awaited<ReturnType<typeo
           </Chips>
           <Txt v="label" color="muted">Goal</Txt>
           <Chips>
-            {(Object.keys(GOAL_LABEL) as Goal[]).map((g) => <Chip key={g} label={GOAL_LABEL[g]} on={user.goal === g} onPress={() => save({ goal: g, paceKgWeek: null })} />)}
+            {(Object.keys(GOAL_LABEL) as Goal[]).map((g) => <Chip key={g} label={GOAL_LABEL[g]} on={user.goals.includes(g)} onPress={() => save({ goals: toggleGoal(user.goals, g), paceKgWeek: null })} />)}
           </Chips>
           <Row>
             <Field label="Target body fat %" keyboardType="decimal-pad" defaultValue={user.targetBfPct != null ? String(user.targetBfPct) : ''} placeholder="e.g. 12" style={{ flex: 1 }} onEndEditing={(e) => {
@@ -149,7 +149,7 @@ function Body({ user, entries }: { user: User; entries: Awaited<ReturnType<typeo
           <Field
             label={`Pace (${u.w} per week, negative to lose)`}
             keyboardType="numbers-and-punctuation"
-            key={`${user.goal}${user.targetBfPct}${user.targetDate}`}
+            key={`${user.goals.join()}${user.targetBfPct}${user.targetDate}`}
             defaultValue={String(displayWeight(pace, u.units))}
             onEndEditing={(e) => {
               const v = num(e.nativeEvent.text);

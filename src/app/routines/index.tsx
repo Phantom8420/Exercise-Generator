@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { getUser } from '../../db/repo/core';
 import { createRoutine, listRoutines } from '../../db/repo/routines';
-import { GOAL_LABEL, SPLIT_LABEL } from '../../domain/types';
+import { SPLIT_LABEL, goalsLabel } from '../../domain/types';
 import { Button, Card, Empty, Gate, Row, Screen, Tag, Txt } from '../../ui/kit';
 import { useData, useWrite } from '../../ui/useData';
 
@@ -9,7 +9,7 @@ export default function Routines() {
   const write = useWrite();
   const state = useData(listRoutines);
   const blank = async () => {
-    const id = await write(async (db) => createRoutine(db, 'My routine', 'custom', (await getUser(db)).goal));
+    const id = await write(async (db) => createRoutine(db, 'My routine', 'custom', (await getUser(db)).goals));
     router.push(`/routines/${id}`);
   };
   return (
@@ -30,7 +30,7 @@ export default function Routines() {
                   {r.isActive && <Tag label="Active" strong />}
                 </Row>
                 <Txt v="caption" color="muted">
-                  {SPLIT_LABEL[r.split]} · {GOAL_LABEL[r.goal]} · {r.dayCount} {r.dayCount === 1 ? 'day' : 'days'}
+                  {SPLIT_LABEL[r.split]} · {goalsLabel(r.goals)} · {r.dayCount} {r.dayCount === 1 ? 'day' : 'days'}
                 </Txt>
               </Card>
             ))

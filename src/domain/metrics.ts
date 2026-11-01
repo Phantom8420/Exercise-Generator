@@ -69,8 +69,10 @@ export const DEFAULT_PACE_PCT_PER_WEEK: Record<Goal, number> = {
 };
 
 /** Default pace in kg/week; without a weigh-in a 75 kg reference body is assumed. */
-export function defaultPaceKg(goal: Goal, weightKg: number | null): number {
-  return Math.round((weightKg ?? 75) * DEFAULT_PACE_PCT_PER_WEEK[goal] * 10) / 1000;
+export function defaultPaceKg(goals: Goal | Goal[], weightKg: number | null): number {
+  const gs = [goals].flat();
+  const pct = gs.reduce((s, g) => s + DEFAULT_PACE_PCT_PER_WEEK[g], 0) / gs.length; // several goals: average their paces
+  return Math.round((weightKg ?? 75) * pct * 10) / 1000;
 }
 
 /**
@@ -104,8 +106,8 @@ export function calorieTarget(tdeeKcal: number, paceKgPerWeek: number): Result {
   };
 }
 
-export function proteinTarget(weightKg: number, goal: Goal): Result {
-  const k = PROTEIN_G_PER_KG[goal];
+export function proteinTarget(weightKg: number, goals: Goal | Goal[]): Result {
+  const k = Math.max(...[goals].flat().map((g) => PROTEIN_G_PER_KG[g]));
   return { value: weightKg * k, formula: `protein = ${k} g × kg bodyweight` };
 }
 

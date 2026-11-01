@@ -1,4 +1,4 @@
-import type { Equipment, Experience, Goal, Sex } from '../../domain/types';
+import { parseGoals, primaryGoal, type Equipment, type Experience, type Goal, type Sex } from '../../domain/types';
 import type { Db } from '../db';
 
 // ---------- settings ----------
@@ -16,7 +16,8 @@ export interface User {
   sex: Sex;
   birthDate: string | null;
   heightCm: number | null;
-  goal: Goal;
+  goal: Goal; // primary goal, derived from goals
+  goals: Goal[];
   experience: Experience;
   recovery: number;
   activityFactor: number;
@@ -27,20 +28,20 @@ export interface User {
 
 export async function getUser(db: Db): Promise<User> {
   const r = await db.get<{
-    name: string | null; sex: Sex; birth_date: string | null; height_cm: number | null; goal: Goal;
+    name: string | null; sex: Sex; birth_date: string | null; height_cm: number | null; goal: string;
     experience: Experience; recovery: number; activity_factor: number; pace_kg_week: number | null;
     target_bf_pct: number | null; target_date: string | null;
   }>('SELECT * FROM user WHERE id = 1');
   if (!r) throw new Error('user row missing; migrations did not run');
   return {
-    name: r.name, sex: r.sex, birthDate: r.birth_date, heightCm: r.height_cm, goal: r.goal, experience: r.experience,
+    name: r.name, sex: r.sex, birthDate: r.birth_date, heightCm: r.height_cm, goal: primaryGoal(parseGoals(r.goal)), goals: parseGoals(r.goal), experience: r.experience,
     recovery: r.recovery, activityFactor: r.activity_factor, paceKgWeek: r.pace_kg_week,
     targetBfPct: r.target_bf_pct, targetDate: r.target_date,
   };
 }
 
 const USER_COLS: Record<keyof User, string> = {
-  name: 'name', sex: 'sex', birthDate: 'birth_date', heightCm: 'height_cm', goal: 'goal', experience: 'experience',
+  name: 'name', sex: 'sex', birthDate: 'birth_date', heightCm: 'height_cm', goal: 'goal', goals: 'goal', experience: 'experience',
   recovery: 'recovery', activityFactor: 'activity_factor', paceKgWeek: 'pace_kg_week',
   targetBfPct: 'target_bf_pct', targetDate: 'target_date',
 };
@@ -50,7 +51,7 @@ export async function updateUser(db: Db, patch: Partial<User>): Promise<void> {
   if (!keys.length) return;
   await db.run(
     `UPDATE user SET ${keys.map((k) => `${USER_COLS[k]} = ?`).join(', ')} WHERE id = 1`,
-    keys.map((k) => (patch[k] ?? null) as string | number | null),
+    keys.map((k) => (Array.isArray(patch[k]) ? (patch[k] as string[]).join(',') : patch[k] ?? null) as string | number | null),
   );
 }
 

@@ -58,7 +58,7 @@ describe('debt, challenges and nutrition end to end', () => {
       },
       await allExercises(db),
     );
-    await saveGeneratedRoutine(db, 'Test', 'full_body', 'gain_muscle', days, {});
+    await saveGeneratedRoutine(db, 'Test', 'full_body', ['gain_muscle'], days, {});
   });
 
   it('saves and reads the active week', async () => {

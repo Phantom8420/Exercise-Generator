@@ -70,6 +70,18 @@ export const GOAL_LABEL: Record<Goal, string> = {
   recomp: 'Recomp',
 };
 
+/** Goals are stored comma-joined in one TEXT column. Priority decides which one sets reps, rest and sets. */
+const GOAL_PRIORITY: Goal[] = ['strength', 'gain_muscle', 'lose_fat', 'recomp', 'maintain'];
+export function parseGoals(s: string): Goal[] {
+  const g = s.split(',').filter((x): x is Goal => x in GOAL_LABEL);
+  return g.length ? g : ['maintain'];
+}
+export const primaryGoal = (goals: Goal[]): Goal => GOAL_PRIORITY.find((g) => goals.includes(g)) ?? 'maintain';
+export const goalsLabel = (goals: Goal[]): string => goals.map((g) => GOAL_LABEL[g]).join(' + ');
+/** Toggle one goal; the last remaining goal can't be removed. */
+export const toggleGoal = (goals: Goal[], g: Goal): Goal[] =>
+  goals.includes(g) ? (goals.length > 1 ? goals.filter((x) => x !== g) : goals) : [...goals, g];
+
 export const SPLIT_LABEL: Record<Split, string> = {
   upper_lower: 'Upper / Lower',
   ppl: 'Push Pull Legs',

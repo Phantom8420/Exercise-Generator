@@ -1,4 +1,5 @@
 import { ageFrom, bmi, bodyFatGoalPace, calorieTarget, defaultPaceKg, mifflinStJeor, movingAverage, navyBodyFat, proteinTarget, tdee } from '../metrics';
+import { parseGoals, primaryGoal, toggleGoal } from '../types';
 import { displayWeight, lbToKg, storeWeight } from '../units';
 
 describe('metrics', () => {
@@ -64,4 +65,18 @@ it('paces weight to a body-fat target with lean mass held', () => {
   const p = bodyFatGoalPace(80, 20, 15, 12);
   expect(p.value).toBeCloseTo((64 / 0.85 - 80) / 12, 5);
   expect(bodyFatGoalPace(80, 20, 15, 0).value).toBe(0);
+});
+
+describe('multiple goals', () => {
+  it('parses, picks a primary and toggles without emptying', () => {
+    expect(parseGoals('lose_fat,strength')).toEqual(['lose_fat', 'strength']);
+    expect(parseGoals('junk')).toEqual(['maintain']);
+    expect(primaryGoal(['lose_fat', 'strength'])).toBe('strength');
+    expect(toggleGoal(['lose_fat'], 'lose_fat')).toEqual(['lose_fat']);
+    expect(toggleGoal(['lose_fat'], 'strength')).toEqual(['lose_fat', 'strength']);
+  });
+  it('averages pace and takes the highest protein', () => {
+    expect(defaultPaceKg(['lose_fat', 'gain_muscle'], 100)).toBeCloseTo(((-0.7 + 0.25) / 2) * 1, 5);
+    expect(proteinTarget(100, ['strength', 'lose_fat']).value).toBeCloseTo(220);
+  });
 });

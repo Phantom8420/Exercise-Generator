@@ -18,7 +18,7 @@ import {
 } from '../../db/repo/routines';
 import { estimatedMinutes } from '../../domain/generator';
 import { GOAL_PARAMS } from '../../domain/training';
-import { GOAL_LABEL, SPLIT_LABEL, WEEKDAYS, type Goal } from '../../domain/types';
+import { SPLIT_LABEL, WEEKDAYS, goalsLabel, type Goal } from '../../domain/types';
 import { displayWeight, storeWeight } from '../../domain/units';
 import { pickExercise } from '../../state/pick';
 import { useUnits } from '../../ui/format';
@@ -49,7 +49,7 @@ export default function RoutineEditor() {
                 onEndEditing={() => name?.trim() && write((db) => renameRoutine(db, routine.id, name.trim()))}
               />
               <Row style={{ justifyContent: 'space-between' }}>
-                <Txt v="caption" color="muted">{SPLIT_LABEL[routine.split]} · {GOAL_LABEL[routine.goal]}</Txt>
+                <Txt v="caption" color="muted">{SPLIT_LABEL[routine.split]} · {goalsLabel(routine.goals)}</Txt>
                 {routine.isActive ? <Tag label="Active" strong /> : <Button small title="Make active" onPress={() => write((db) => setActiveRoutine(db, routine.id))} />}
               </Row>
             </Card>

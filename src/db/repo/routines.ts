@@ -1,4 +1,4 @@
-import type { Exercise, Goal, Intensity, PlannedDay, PlannedExercise, Split } from '../../domain/types';
+import { parseGoals, primaryGoal, type Exercise, type Goal, type Intensity, type PlannedDay, type PlannedExercise, type Split } from '../../domain/types';
 import type { Db } from '../db';
 import { exercisesById } from './exercises';
 
@@ -7,6 +7,7 @@ export interface Routine {
   name: string;
   split: Split;
   goal: Goal;
+  goals: Goal[];
   isGenerated: boolean;
   isActive: boolean;
   generatorInputs: unknown;
@@ -29,11 +30,11 @@ export interface RoutineDay {
 }
 
 interface RoutineRow {
-  id: number; name: string; split: Split; goal: Goal; is_generated: number; is_active: number;
+  id: number; name: string; split: Split; goal: string; is_generated: number; is_active: number;
   generator_inputs: string | null; explanation: string | null;
 }
 const toRoutine = (r: RoutineRow): Routine => ({
-  id: r.id, name: r.name, split: r.split, goal: r.goal, isGenerated: !!r.is_generated, isActive: !!r.is_active,
+  id: r.id, name: r.name, split: r.split, goal: primaryGoal(parseGoals(r.goal)), goals: parseGoals(r.goal), isGenerated: !!r.is_generated, isActive: !!r.is_active,
   generatorInputs: r.generator_inputs ? JSON.parse(r.generator_inputs) : null,
   explanation: r.explanation ? JSON.parse(r.explanation) : null,
 });
@@ -98,16 +99,16 @@ export async function getRoutineDay(db: Db, dayId: number): Promise<RoutineDay |
   return d ? (await daysFor(db, d.routine_id, d.weekday))[0] ?? null : null;
 }
 
-export async function createRoutine(db: Db, name: string, split: Split, goal: Goal): Promise<number> {
+export async function createRoutine(db: Db, name: string, split: Split, goals: Goal[]): Promise<number> {
   const hasActive = await db.get<{ id: number }>('SELECT id FROM routine WHERE is_active = 1');
-  return (await db.run('INSERT INTO routine (name, split, goal, is_active) VALUES (?, ?, ?, ?)', [name, split, goal, hasActive ? 0 : 1])).lastInsertRowId;
+  return (await db.run('INSERT INTO routine (name, split, goal, is_active) VALUES (?, ?, ?, ?)', [name, split, goals.join(','), hasActive ? 0 : 1])).lastInsertRowId;
 }
 
 export async function saveGeneratedRoutine(
   db: Db,
   name: string,
   split: Split,
-  goal: Goal,
+  goals: Goal[],
   days: PlannedDay[],
   inputs: unknown,
   explanation: unknown = null,
@@ -115,7 +116,7 @@ export async function saveGeneratedRoutine(
   return db.tx(async () => {
     const id = (
       await db.run('INSERT INTO routine (name, split, goal, is_generated, generator_inputs, explanation) VALUES (?, ?, ?, 1, ?, ?)', [
-        name, split, goal, JSON.stringify(inputs), explanation ? JSON.stringify(explanation) : null,
+        name, split, goals.join(','), JSON.stringify(inputs), explanation ? JSON.stringify(explanation) : null,
       ])
     ).lastInsertRowId;
     await writeDays(db, id, days);

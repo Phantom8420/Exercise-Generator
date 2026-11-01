@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { getUser, latestWeightKg } from '../../db/repo/core';
 import { listDebts } from '../../db/repo/debts';
 import { activeRoutine } from '../../db/repo/routines';
-import { GOAL_LABEL } from '../../domain/types';
+import { goalsLabel } from '../../domain/types';
 import { displayWeight } from '../../domain/units';
 import { useUnits } from '../../ui/format';
 import { BigNumber, Card, Divider, Gate, IconButton, ListRow, Screen, Txt, type IconName } from '../../ui/kit';
@@ -34,7 +34,7 @@ export default function Profile() {
           return (
             <>
               <Card tone="invert" onPress={() => router.push('/metrics')} label="Open body metrics" style={{ padding: space.xl }}>
-                <Txt v="label" color="onInvert" style={{ opacity: 0.7 }}>{d.user.name ?? 'You'} · {GOAL_LABEL[d.user.goal]}</Txt>
+                <Txt v="label" color="onInvert" style={{ opacity: 0.7 }}>{d.user.name ?? 'You'} · {goalsLabel(d.user.goals)}</Txt>
                 {d.kg != null ? (
                   <BigNumber value={String(displayWeight(d.kg, u.units))} unit={u.w} color="onInvert" />
                 ) : (

@@ -4,7 +4,7 @@ import { addBodyMetric, setSetting, updateUser, type User } from '../db/repo/cor
 import { setTarget } from '../db/repo/nutrition';
 import { addDays, today } from '../domain/dates';
 import { ACTIVITY, ageFrom, bodyFatGoalPace, calorieTarget, defaultPaceKg, mifflinStJeor, navyBodyFat, proteinTarget, tdee } from '../domain/metrics';
-import { GOAL_LABEL, type Goal } from '../domain/types';
+import { GOAL_LABEL, toggleGoal, type Goal } from '../domain/types';
 import { lengthUnit, storeLength, storeWeight } from '../domain/units';
 import { useUnits } from '../ui/format';
 import { Button, Card, Chip, Chips, Field, Row, Screen, Section, Segmented, Txt } from '../ui/kit';
@@ -22,7 +22,7 @@ export default function Onboarding() {
   const write = useWrite();
   const L = lengthUnit(u.units);
   const [sex, setSex] = useState<User['sex']>('male');
-  const [goal, setGoal] = useState<Goal>('lose_fat');
+  const [goals, setGoals] = useState<Goal[]>(['lose_fat']);
   const [activity, setActivity] = useState(1.55);
   const [f, setF] = useState({ name: '', birth: '', height: '', weight: '', waist: '', neck: '', hip: '', bf: '', targetBf: '', weeks: '' });
   const [busy, setBusy] = useState(false);
@@ -42,17 +42,17 @@ export default function Onboarding() {
     const bf = num(f.bf) ?? (waist && neck ? navyBodyFat(sex, heightCm!, waist, neck, hip)?.value ?? null : null);
     const bfPace = bf != null && targetBfPct != null && weeks ? bodyFatGoalPace(weightKg!, bf, targetBfPct, weeks).value : null;
     const bmr = mifflinStJeor(sex, weightKg!, heightCm!, ageFrom(f.birth)).value;
-    const kcal = calorieTarget(tdee(bmr, activity).value, bfPace ?? defaultPaceKg(goal, weightKg)).value;
+    const kcal = calorieTarget(tdee(bmr, activity).value, bfPace ?? defaultPaceKg(goals, weightKg)).value;
     await write(async (db) => {
       await updateUser(db, {
-        name: f.name.trim() || null, sex, birthDate: f.birth, heightCm, goal, activityFactor: activity, paceKgWeek: null,
+        name: f.name.trim() || null, sex, birthDate: f.birth, heightCm, goals, activityFactor: activity, paceKgWeek: null,
         targetBfPct, targetDate: targetBfPct != null && weeks ? addDays(day, Math.round(weeks * 7)) : null,
       });
       await addBodyMetric(db, {
         measuredOn: day, weightKg, waistCm: waist, neckCm: neck, hipCm: hip,
         bodyFatPct: num(f.bf), bodyFatSource: num(f.bf) != null ? 'manual' : null,
       });
-      await setTarget(db, day, { kcal: Math.round(kcal), proteinG: Math.round(proteinTarget(weightKg!, goal).value), carbsG: null, fatG: null, source: 'tdee' });
+      await setTarget(db, day, { kcal: Math.round(kcal), proteinG: Math.round(proteinTarget(weightKg!, goals).value), carbsG: null, fatG: null, source: 'tdee' });
       await setSetting(db, 'onboarded', '1');
     });
     router.replace('/routines/generate');
@@ -83,7 +83,7 @@ export default function Onboarding() {
       </Section>
       <Section title="Goal">
         <Chips>
-          {(Object.keys(GOAL_LABEL) as Goal[]).map((g) => <Chip key={g} label={GOAL_LABEL[g]} on={goal === g} onPress={() => setGoal(g)} />)}
+          {(Object.keys(GOAL_LABEL) as Goal[]).map((g) => <Chip key={g} label={GOAL_LABEL[g]} on={goals.includes(g)} onPress={() => setGoals(toggleGoal(goals, g))} />)}
         </Chips>
         <Card style={{ gap: space.m }}>
           <Txt v="heading">Body-fat target (optional)</Txt>

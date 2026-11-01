@@ -14,7 +14,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { font, radius, space, useTheme, type ColorName } from './theme';
 import type { Loadable } from './useData';
 
@@ -58,6 +58,33 @@ export function Icon({ name, size = 20, color = 'ink' }: { name: IconName; size?
 }
 
 // ---------- layout ----------
+/** Orb mark; shared by the brand bar and the intro. */
+export function Orb({ size = 22 }: { size?: number }) {
+  const id = useId();
+  return (
+    <Svg width={size} height={size} viewBox="0 0 100 100">
+      <Defs>
+        <RadialGradient id={id} cx="38%" cy="34%" r="75%">
+          <Stop offset="0" stopColor="#FFECD6" />
+          <Stop offset="0.35" stopColor="#FF9646" />
+          <Stop offset="0.65" stopColor="#F76B15" />
+          <Stop offset="1" stopColor="#BE3C00" />
+        </RadialGradient>
+      </Defs>
+      <Circle cx="50" cy="50" r="48" fill={`url(#${id})`} />
+    </Svg>
+  );
+}
+
+function BrandBar() {
+  return (
+    <View accessibilityRole="header" style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: space.l, paddingTop: space.s }}>
+      <Orb size={22} />
+      <Txt v="heading" style={{ fontFamily: font.x, letterSpacing: -0.4 }}>Plasma</Txt>
+    </View>
+  );
+}
+
 export function Screen({
   title,
   back,
@@ -81,7 +108,7 @@ export function Screen({
     title || back || right ? (
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.m, paddingHorizontal: space.l, paddingTop: space.s, paddingBottom: space.m, minHeight: 60 }}>
         {back && <IconButton icon="chevron-left" tone="plain" label="Back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />}
-        <Txt v={back ? 'heading' : 'title'} style={{ flex: 1, textAlign: back ? 'center' : 'left', fontFamily: back ? font.s : undefined }} numberOfLines={1} accessibilityRole="header">
+        <Txt v={back ? 'heading' : 'title'} style={{ flex: 1, textAlign: back ? 'center' : 'left', fontFamily: back ? font.s : undefined }} numberOfLines={1} >
           {title ?? ''}
         </Txt>
         {right ?? (back ? <View style={{ width: 44 }} /> : null)}
@@ -91,6 +118,7 @@ export function Screen({
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: c.bg }}>
       {glow && <Glow />}
+      <BrandBar />
       {header}
       {scroll ? (
         <ScrollView contentContainerStyle={body} keyboardShouldPersistTaps="handled">
