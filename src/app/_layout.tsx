@@ -11,14 +11,14 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, Easing, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { DbProvider } from '../db/DbProvider';
-import { Orb, Txt } from '../ui/kit';
-import { font, useTheme } from '../ui/theme';
+import { Orb } from '../ui/kit';
+import { useTheme } from '../ui/theme';
 
 function Splash() {
   return <View style={{ flex: 1, backgroundColor: '#000' }} />;
 }
 
-/** One-time launch intro: the orb ignites, the wordmark settles in, then the overlay fades out. */
+/** One-time launch intro: the orb ignites, then the overlay fades out. */
 function Intro({ onDone }: { onDone: () => void }) {
   const t = useRef(new Animated.Value(0)).current;
   const out = useRef(new Animated.Value(1)).current;
@@ -37,16 +37,11 @@ function Intro({ onDone }: { onDone: () => void }) {
   const scale = t.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] });
   const glowScale = t.interpolate({ inputRange: [0, 1], outputRange: [0.5, 2.4] });
   const glowOpacity = t.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 0.55, 0.22] });
-  const word = t.interpolate({ inputRange: [0.45, 1], outputRange: [0, 1], extrapolate: 'clamp' });
-  const wordY = t.interpolate({ inputRange: [0.45, 1], outputRange: [10, 0], extrapolate: 'clamp' });
   return (
     <Animated.View pointerEvents="auto" accessibilityLabel="Plasma" style={[StyleSheet.absoluteFill, { backgroundColor: '#000', alignItems: 'center', justifyContent: 'center', opacity: out }]}>
       <Animated.View style={{ position: 'absolute', width: 120, height: 120, borderRadius: 60, backgroundColor: '#F76B15', opacity: glowOpacity, transform: [{ scale: glowScale }] }} />
       <Animated.View style={{ opacity: t, transform: [{ scale }] }}>
         <Orb size={120} />
-      </Animated.View>
-      <Animated.View style={{ marginTop: 28, opacity: word, transform: [{ translateY: wordY }] }}>
-        <Txt style={{ fontFamily: font.x, fontSize: 34, lineHeight: 40, letterSpacing: -1, color: '#fff' }}>Plasma</Txt>
       </Animated.View>
     </Animated.View>
   );
