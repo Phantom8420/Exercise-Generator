@@ -1,5 +1,9 @@
+import { router } from 'expo-router';
 import { View } from 'react-native';
-import { Card, Divider, ListRow, Screen, Section, Tag, Txt } from '../ui/kit';
+import { getSetting, setSetting } from '../db/repo/core';
+import { addDays, toDay } from '../domain/dates';
+import { Card, Chip, Chips, Divider, Gate, ListRow, Screen, Section, Tag, Txt } from '../ui/kit';
+import { useData, useWrite } from '../ui/useData';
 
 type Tip = { title: string; note: string; src?: string };
 const TIERS: { title: string; tag: string; strong?: boolean; tips: Tip[] }[] = [
@@ -61,10 +65,55 @@ const TIERS: { title: string; tag: string; strong?: boolean; tips: Tip[] }[] = [
   },
 ];
 
+const HABITS = [
+  { id: 'sun', label: 'Sunscreen on' },
+  { id: 'sleep', label: 'Slept 7+ hours' },
+  { id: 'skin', label: 'Skin routine done' },
+];
+
+const key = (day: string) => `face_${day}`;
+
+function Daily() {
+  const write = useWrite();
+  const state = useData(async (db) => {
+    const today = toDay(new Date());
+    const days = Array.from({ length: 7 }, (_, i) => addDays(today, i - 6));
+    const rows = await Promise.all(days.map(async (d) => ((await getSetting(db, key(d))) ?? '').split(',').filter(Boolean)));
+    return { today, rows };
+  });
+  return (
+    <Gate state={state}>
+      {({ today, rows }) => {
+        const done = rows[6];
+        const toggle = (id: string) =>
+          write((db) => setSetting(db, key(today), (done.includes(id) ? done.filter((x) => x !== id) : [...done, id]).join(',')));
+        return (
+          <Section title="Today">
+            <Chips>
+              {HABITS.map((h) => (
+                <Chip key={h.id} label={h.label} on={done.includes(h.id)} onPress={() => toggle(h.id)} />
+              ))}
+            </Chips>
+            <Txt color="muted">
+              Last 7 days: {HABITS.map((h) => `${h.label.split(' ')[0].toLowerCase()} ${rows.filter((r) => r.includes(h.id)).length}/7`).join(' · ')}
+            </Txt>
+            <Card>
+              <ListRow icon="camera" title="Progress photo" subtitle="Same light, same angle, to track your own change" onPress={() => router.push('/photos')} />
+              <Divider />
+              <ListRow icon="activity" title="Body fat trend" subtitle="The one lever with a measured effect on how a face reads" onPress={() => router.push('/metrics')} />
+            </Card>
+          </Section>
+        );
+      }}
+    </Gate>
+  );
+}
+
 export default function FaceScreen() {
   return (
     <Screen back title="Face">
       <Txt color="muted">What changes how a face looks, sorted by what the studies show. Sources are named so you can look them up.</Txt>
+      <Daily />
       {TIERS.map((t) => (
         <Section key={t.title} title={t.title}>
           <Tag label={t.tag} strong={t.strong} />
