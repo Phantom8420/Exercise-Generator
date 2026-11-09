@@ -27,6 +27,7 @@ export default function Profile() {
             { icon: 'tool', title: 'Equipment', subtitle: 'What you have, and where', href: '/equipment' },
             { icon: 'trending-up', title: 'Max plan', subtitle: 'The most training your week can hold', href: '/maxplan' },
             { icon: 'smile', title: 'Face', subtitle: 'What works, ranked by evidence', href: '/face' },
+            { icon: 'shopping-bag', title: 'Wardrobe', subtitle: 'Your outfits, picked for the day', href: '/wardrobe' },
             { icon: 'award', title: 'Challenges', subtitle: 'Volume, reps, calories, streaks', href: '/challenges' },
             { icon: 'rotate-ccw', title: 'What you owe', subtitle: d.debts.length ? `${d.debts.length} open` : 'All square', href: '/debt' },
             { icon: 'clock', title: 'History', subtitle: 'Every session you logged', href: '/history' },
